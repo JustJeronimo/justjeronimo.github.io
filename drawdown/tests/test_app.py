@@ -109,7 +109,7 @@ with sync_playwright() as p:
     pg.evaluate("window.__snd=[]; ['tick','tap','second','chime','start','stop','snap'].forEach(k => { const f = SFX[k]; SFX[k] = (...a) => { window.__snd.push(k); return f(...a); }; })")
     pg.click('[data-act=timerToggle]'); pg.evaluate('T.start = Date.now() - 62000'); pg.wait_for_timeout(500)
     pg.wait_for_timeout(200)
-    check('audio unlocks on tap', pg.evaluate('SFX.state') == 'running' and pg.evaluate('SFX.ready') >= 7, pg.evaluate('SFX.state'))
+    check('audio unlocks on tap', pg.evaluate('SFX.state') == 'running' and pg.evaluate('SFX.ready') >= 14, pg.evaluate('SFX.state'))
     snd = pg.evaluate('window.__snd')
     check('timer sounds: start + pour chime', 'start' in snd and 'chime' in snd, str(snd))
     check('timer shows pour 1', 'POUR 1' in pg.inner_text('#h-l').upper() and 'Pour to' in pg.inner_text('#h-s'), pg.inner_text('#h-l'))
