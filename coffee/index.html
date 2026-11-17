@@ -615,7 +615,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.6 · 17 Nov 2026';
+const APP_VERSION = '1.7 · 17 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -1343,57 +1343,151 @@ function loadOcr(){
   return ocrLib;
 }
 const ORIGINS = ['Ethiopia','Kenya','Colombia','Brazil','Guatemala','Honduras','Costa Rica','Panama','Peru','Rwanda','Burundi','El Salvador','Nicaragua','Mexico','Bolivia','Ecuador','Yemen','Indonesia','Sumatra','Java','Papua New Guinea','India','China','Yunnan','Uganda','Tanzania','Congo','DRC','Vietnam','Thailand','Myanmar','Laos','Taiwan','Hawaii','Jamaica','Malawi','Zambia','Zimbabwe','Dominican Republic','Haiti','Venezuela','Timor','Philippines','Cameroon'];
-const REGIONS = ['Yirgacheffe','Sidamo','Sidama','Guji','Gedeb','Kochere','Limu','Jimma','Harrar','Nyeri','Kirinyaga','Embu','Huila','Nariño','Narino','Cauca','Tolima','Antioquia','Quindio','Santander','Minas Gerais','Cerrado','Mogiana','Antigua','Huehuetenango','Atitlan','Boquete','Volcan','Tarrazu','West Valley','Cajamarca','Cusco','Chiapas','Oaxaca','Veracruz','Aceh','Gayo','Kayanza','Ngozi','Nyamasheke','Rulindo','Kivu'];
-const PROCESSES = [['carbonic maceration','Carbonic maceration'],['anaerobic natural','Anaerobic natural'],['anaerobic washed','Anaerobic washed'],['anaerobic','Anaerobic'],['double fermentation','Double fermentation'],['thermal shock','Thermal shock'],['co-ferment','Co-fermented'],['coferment','Co-fermented'],['semi-washed','Semi-washed'],['semi washed','Semi-washed'],['wet hulled','Wet-hulled'],['wet-hulled','Wet-hulled'],['black honey','Black honey'],['red honey','Red honey'],['yellow honey','Yellow honey'],['white honey','White honey'],['honey','Honey'],['natural','Natural'],['washed','Washed'],['pulped natural','Pulped natural']];
+const REGIONS = ['Yirgacheffe','Sidamo','Sidama','Guji','Gedeb','Kochere','Limu','Jimma','Harrar','Nyeri','Kirinyaga','Embu','Huila','Nariño','Narino','Cauca','Tolima','Antioquia','Quindio','Santander','Minas Gerais','Cerrado','Mogiana','Sul de Minas','Antigua','Huehuetenango','Atitlan','Boquete','Volcan','Tarrazu','West Valley','Cajamarca','Cusco','Chiapas','Oaxaca','Veracruz','Aceh','Gayo','Kayanza','Ngozi','Nyamasheke','Rulindo','Kivu','Western Province','Northern Province','Southern Province'];
+/* longest first, so "anaerobic natural" wins over "natural" */
+const PROCESSES = [['carbonic maceration','Carbonic maceration'],['anaerobic natural','Anaerobic natural'],['anaerobic washed','Anaerobic washed'],['anaerobic','Anaerobic'],['double fermentation','Double fermentation'],['thermal shock','Thermal shock'],['co-ferment','Co-fermented'],['coferment','Co-fermented'],['experimental','Experimental'],['semi-washed','Semi-washed'],['semi washed','Semi-washed'],['wet hulled','Wet-hulled'],['wet-hulled','Wet-hulled'],['pulped natural','Pulped natural'],['black honey','Black honey'],['red honey','Red honey'],['yellow honey','Yellow honey'],['white honey','White honey'],['honey','Honey'],['natural','Natural'],['washed','Washed']];
 const VARIETALS = ['Gesha','Geisha','Bourbon','Pink Bourbon','Red Bourbon','Yellow Bourbon','Caturra','Catuai','Catuaí','Typica','SL28','SL34','SL-28','SL-34','Pacamara','Heirloom','74110','74112','74158','Castillo','Sidra','Wush Wush','Maragogype','Ruiru 11','Batian','Mundo Novo','Villa Sarchi','Laurina','Java','Landrace','Catimor','Parainema','Marsellesa'];
+/* roasters whose name sits big on the bag, so it isn't taken for the coffee's name */
+const ROASTERS = ['Stooker','Stean’s Beans','FIL','Friedhats','White Label Coffee','Bocca','Manhattan Coffee Roasters','Lot Sixty One','Uncommon','Rum Baba','Coffee Collective','La Cabra','Tim Wendelboe','Onyx','Square Mile','Morgon','Prolog','Five Elephant','The Barn','Bonanza','Gardelli','Hard Beans','Man versus Machine','DAK','Single O','Colonna','Standout','Kaffa','Coffee Brewers','Keen Coffee','Espressofabriek','Headfirst','Giraffe'];
+/* tasting-note words: fruit/floral/tea point to lighter roasts, sweet/nut/chocolate to medium */
+const FRUIT = ['berry','berries','strawberry','blueberry','raspberry','blackberry','cherry','peach','apricot','nectarine','plum','apple','pear','grape','lemon','lime','orange','mandarin','tangerine','grapefruit','bergamot','citrus','lychee','mango','passion fruit','pineapple','papaya','melon','kiwi','rhubarb','cranberry','currant','blackcurrant','jasmine','rose','floral','hibiscus','elderflower','lavender','tea','black tea','earl grey','verbena','lemongrass','tropical','stone fruit','red fruit','wine','winey','juicy','tamarind','guava','pomegranate','raisin','date','fig','jam'];
+const SWEET = ['chocolate','cocoa','cacao','caramel','toffee','butterscotch','fudge','almond','hazelnut','walnut','pecan','nut','nutty','nuts','peanut','chestnut','maple','brown sugar','molasses','praline','marzipan','vanilla','cinnamon','speculaas','biscuit','cookie','brownie','malt','syrup','tobacco','smoky','spice','spices','licorice','sugar cane','panela','dulce de leche','nougat'];
 const MONTHS = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,sept:9,oct:10,nov:11,dec:12,mrt:3,mei:5,okt:10};
 function findDate(t){
   const today = new Date(), iso = (y,m,d) => { if(y < 100) y += 2000; const dt = new Date(Date.UTC(y, m-1, d)); if(isNaN(dt) || m < 1 || m > 12 || d < 1 || d > 31) return null; if(dt > today || today - dt > 400*864e5) return null; return dt.toISOString().slice(0,10); };
   const near = /(roast(ed)?( on| date)?|geroosterd|brand(datum)?)[^0-9a-z]{0,6}/i;
+  /* day/month first (Europe); a date that would be in the future falls back to month/day */
   const pats = [
     [/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/g, m => iso(+m[1], +m[2], +m[3])],
-    [/(\d{1,2})[-./](\d{1,2})[-./](\d{2,4})/g, m => iso(+m[3], +m[2], +m[1])],
+    [/(\d{1,2})[-./](\d{1,2})[-./](\d{2,4})/g, m => iso(+m[3], +m[2], +m[1]) || iso(+m[3], +m[1], +m[2])],
     [/(\d{1,2})\s*([a-z]{3,5})\.?\s*(\d{2,4})/gi, m => MONTHS[m[2].toLowerCase()] ? iso(+m[3], MONTHS[m[2].toLowerCase()], +m[1]) : null]
   ];
   let best = null;
   for(const [re, fn] of pats){ for(const m of t.matchAll(re)){ const v = fn(m); if(!v) continue; const pre = t.slice(Math.max(0, m.index - 24), m.index); if(near.test(pre)) return v; best = best || v; } }
   return best || '';
 }
-function hasWord(t, w){ return new RegExp('(^|[^a-z])' + w.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-z]|$)', 'i').test(t); }
+const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function hasWord(t, w){ return new RegExp('(^|[^a-z])' + reEsc(w.toLowerCase()) + '([^a-z]|$)', 'i').test(t); }
+function wordAt(t, w){ const m = new RegExp('(^|[^a-z])' + reEsc(w.toLowerCase()) + '([^a-z]|$)', 'i').exec(t); return m ? m.index : -1; }
+function noteProfile(s){
+  const low = ' ' + String(s || '').toLowerCase() + ' ';
+  const hits = list => list.filter(w => hasWord(low, w)).length;
+  return { fruit: hits(FRUIT), sweet: hits(SWEET) };
+}
+/* no roast level printed: fruity notes usually mean a light roast, chocolate and nuts a medium one */
+function roastFromNotes(s){
+  const p = noteProfile(s);
+  if(!p.fruit && !p.sweet) return '';
+  return p.fruit > p.sweet ? 'light' : p.sweet > p.fruit ? 'medium' : 'medium-light';
+}
+const ocrClean = s => String(s || '').replace(/[’‘`]/g, '\'').replace(/[|_~=—–“”"»«{}\[\]©®§]+/g, ' ').replace(/\s+/g, ' ').trim();
+const HEADS = { origin:/^(origin|origins|country|herkomst|regio|region)$/, process:/^(process|processing|proces|method)$/, varietal:/^(variet(y|ies|al|als)|cultivars?|vari[eë]teit)$/, notes:/^(tasting notes?|notes|flavou?r notes?|flavou?rs?|in the cup|smaak|smaaknotities|cup notes)$/, producer:/^(producers?|farm|farmers?|washing station|station|finca)$/, altitude:/^(altitude|elevation|hoogte)$/ };
+const headOf = s => { const k = s.toLowerCase().replace(/[^a-zë ]/g, ' ').replace(/\s+/g, ' ').trim().replace(/^([a-z] )+|( [a-z])+$/g, ''); return Object.keys(HEADS).find(h => HEADS[h].test(k)) || ''; };
+/* labelled layouts: a heading line ("PROCESS") with the value on the next line(s) */
+function labelFields(text){
+  const lines = text.split('\n').map(ocrClean), out = {};
+  for(let i = 0; i < lines.length; i++){
+    const h = headOf(lines[i]); if(!h) continue;
+    const vals = [];
+    for(let j = i + 1; j < lines.length && vals.length < 3; j++){
+      const l = lines[j]; if(headOf(l)) break;
+      if(l.replace(/[^\p{L}\p{N}]/gu, '').length < 3) continue;
+      vals.push(l);
+      if(!/[,&+]$|\band$/i.test(l)) break;
+    }
+    const v = vals.join(' ').replace(/\s+,/g, ','); if(vals.length && v.length > (out[h] || '').length) out[h] = v;
+  }
+  return out;
+}
+function findProcesses(s){
+  let low = ' ' + s.toLowerCase() + ' '; const found = [];
+  for(const [k, v] of PROCESSES){ let i; while((i = low.indexOf(k)) >= 0){ found.push([i, v]); low = low.slice(0, i) + ' '.repeat(k.length) + low.slice(i + k.length); } }
+  return [...new Set(found.sort((a,b) => a[0] - b[0]).map(x => x[1]))];
+}
+/* OCR slips in tasting notes ("Strowberry") snap to the nearest known flavour word */
+function editDist(a, b){ const m = a.length, n = b.length, d = Array.from({ length: m + 1 }, (_, i) => [i]); for(let j = 1; j <= n; j++) d[0][j] = j;
+  for(let i = 1; i <= m; i++) for(let j = 1; j <= n; j++) d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1)); return d[m][n]; }
+function fixNotes(s){
+  const lex = [...FRUIT, ...SWEET].filter(w => !w.includes(' ')).concat(['milk','dark','wild','sweet','juicy','syrup','roasted','candy','sugar','brown','red','black','white','green','fruit','yellow']);
+  return s.replace(/(^|\s)\p{L}(?=\s)/gu, '').replace(/\p{L}{5,}/gu, w => { const lw = w.toLowerCase(); if(lex.includes(lw)) return w;
+    const hit = lex.find(x => Math.abs(x.length - lw.length) <= 1 && editDist(x, lw) <= (lw.length >= 8 ? 2 : 1));
+    return hit ? (w[0] === w[0].toUpperCase() ? hit[0].toUpperCase() + hit.slice(1) : hit) : w; }).replace(/\s+/g, ' ').trim();
+}
 function parseLabel(text, lines){
-  const t = ' ' + text.replace(/\s+/g, ' ') + ' ', low = t.toLowerCase();
-  const country = ORIGINS.find(o => hasWord(low, o)) || '', region = REGIONS.find(r => hasWord(low, r)) || '';
-  const proc = PROCESSES.find(([k]) => low.includes(k));
-  let vars = [...new Set(VARIETALS.filter(v => hasWord(low, v)).map(v => v.replace('Geisha','Gesha').replace('SL-','SL')))];
+  const t = ' ' + text.replace(/\s+/g, ' ') + ' ', low = ocrClean(t).toLowerCase();
+  const F = labelFields(text), textLines = text.split('\n').map(ocrClean).filter(Boolean);
+  const roasterName = ROASTERS.find(r => hasWord(low.replace(/'/g, '’'), r.toLowerCase()) || hasWord(low, r.toLowerCase().replace(/’/g, '\''))) || '';
+  /* tasting notes: a labelled field, or the line with the most flavour words */
+  let notes = F.notes || '';
+  if(!notes){
+    let best = null;
+    textLines.forEach((l, i) => { const p = noteProfile(l), n = p.fruit + p.sweet; if(n >= 2 && /[a-z]/i.test(l) && !/\d{3}/.test(l) && (!best || n > best.n)) best = { i, n, l }; });
+    if(best){ notes = best.l; const nx = textLines[best.i + 1]; if(nx && /^[a-z][a-z ]{2,20}$/.test(nx) && nx.split(' ').length <= 2) notes += ' ' + nx; }
+  }
+  notes = notes.replace(/^[^\p{L}]+|[^\p{L}.)]+$/gu, '').replace(/^([a-z]{1,5}\s+)+(?=\p{Lu})/u, '').replace(/^(tasting notes?|notes|flavou?rs?|smaak|in the cup|we taste|taste)\s*[:\-]?\s*/i, '');
+  const rest = notes ? low.split(notes.toLowerCase()).join(' ') : low;
+  /* origins: every country, in label order, with its region and blend share when on the same line */
+  const varLine = l => VARIETALS.some(v => hasWord(l.toLowerCase(), v)) && !/%/.test(l);
+  const parts = [];
+  for(const l of [F.origin || '', ...textLines]){
+    if(!l || (l !== F.origin && varLine(l))) continue;
+    const ll = l.toLowerCase();
+    ORIGINS.map(o => [wordAt(ll, o), o]).filter(x => x[0] >= 0).sort((a,b) => a[0] - b[0]).forEach(([, c]) => {
+      if(parts.some(p => p.country === c)) return;
+      const region = REGIONS.find(r => hasWord(ll, r)) || '', pct = (l.match(/(\d{1,3})\s*%/) || [])[1] || '';
+      parts.push({ country: c, region, pct: +pct || 0 });
+    });
+  }
+  if(parts.some(p => p.pct)) parts.sort((a,b) => b.pct - a.pct);
+  const loneRegion = !parts.length ? (REGIONS.find(r => hasWord(low, r)) || '') : '';
+  const origin = parts.length ? parts.map(p => (parts.length > 1 && p.pct ? p.pct + '% ' : '') + [p.region, p.country].filter(Boolean).join(', ')).join(' / ') : loneRegion;
+  const procs = findProcesses(F.process || rest);
+  let vars = [...new Set(VARIETALS.filter(v => hasWord(F.varietal ? F.varietal.toLowerCase() : low, v)).map(v => v.replace('Geisha','Gesha').replace('SL-','SL')))];
   vars = vars.filter(v => !vars.some(o => o !== v && o.includes(v)));
   let roastLevel = '';
-  if(/light roast|lichte branding|light/.test(low)) roastLevel = 'light';
-  if(/medium[- ]light/.test(low)) roastLevel = 'medium-light'; else if(/medium roast|medium/.test(low) && !roastLevel) roastLevel = 'medium';
-  if(/dark roast|donker/.test(low)) roastLevel = 'dark';
-  const alt = (t.match(/(\d{1,2}[.,]?\d{3}(?:\s*[-–]\s*\d{1,2}[.,]?\d{3})?)\s*(m\.?a\.?s\.?l|masl|meters|metres|m\b)/i) || [])[1] || '';
-  const nl = (text.match(/(tasting notes?|notes?|flavou?rs?|smaak|in the cup|we taste|taste)\s*[:\-–]?\s*([^\n]{4,80})/i) || [])[2] || '';
-  /* the biggest text on the bag is usually the coffee's name */
-  const skip = l => { const s = l.text.trim(); const sl = s.toLowerCase(); return s.length < 3 || /\d{2,}/.test(s) || PROCESSES.some(([k]) => sl === k) || /roast|coffee|koffie|net|weight|gram|\bg\b|filter|espresso|whole bean|bonen/i.test(sl) && s.split(' ').length < 3; };
-  const big = (lines || []).filter(l => l.text && l.confidence > 55 && !skip(l)).sort((a,b) => (b.bbox.y1 - b.bbox.y0) - (a.bbox.y1 - a.bbox.y0));
-  const clean = s => s.replace(/[^\p{L}\p{N}&' .,-]/gu, ' ').replace(/\s+/g, ' ').replace(/\s+,/g, ',').trim().replace(/[,.]$/, '');
+  if(/\b[lu1i]{0,2}ght[\s-]*(to[\s-]*)?medium|medium[\s-]*(to[\s-]*)?light/.test(low)) roastLevel = 'medium-light';
+  else if(/medium[\s-]*(to[\s-]*)?dark|dark[\s-]*(to[\s-]*)?medium/.test(low)) roastLevel = 'medium-dark';
+  else if(/dark roast|donkere? branding/.test(low)) roastLevel = 'dark';
+  else if(/light roast|lichte branding|\blight\b/.test(rest)) roastLevel = 'light';
+  else if(/medium roast|\bmedium\b/.test(low)) roastLevel = 'medium';
+  const alt = ((F.altitude ? F.altitude + ' m' : t).match(/(\d{1,2}[.,]?\d{3}(?:\s*[-–]\s*\d{1,2}[.,]?\d{3})?)\s*(m\.?a\.?s\.?l|masl|meters|metres|m\b)/i) || [])[1] || '';
+  /* the biggest text on the bag is usually the coffee's name, once roaster, headings and stock words are skipped */
+  const STOP = /^(specialty|speciality|coffee|koffie|roasters?|roastery|east|african|single|origin|limited|edition|filter|espresso|whole|bean|beans|bonen|blend|omni|roast|the|by|and|of|co)$/i;
+  const rWords = roasterName ? roasterName.toLowerCase().replace(/’/g, '\'').split(/\s+/).filter(w => w.length >= 3) : [];
+  const skip = s => { const sl = s.toLowerCase(), words = sl.split(/[^\p{L}']+/u).filter(Boolean);
+    const letters = (s.match(/\p{L}/gu) || []).length;
+    return s.length < 3 || words.length > 4 || /\.(jpe?g|png|heic)\b|\d:\d\d/i.test(s) || varLine(s) || letters / s.replace(/\s/g, '').length < 0.75 || !/\p{L}{3}/u.test(s) || /\d{2,}/.test(s) || headOf(s) || words.every(w => STOP.test(w))
+      || rWords.some(w => words.some(x => x.replace(/'s$/, '') === w.replace(/'s$/, '')))
+      || findProcesses(sl).length && words.length < 4 || ORIGINS.some(o => sl === o.toLowerCase()) || noteProfile(sl).fruit + noteProfile(sl).sweet >= 2; };
+  const hgt = l => l.h != null ? l.h : (l.bbox ? (l.bbox.y1 - l.bbox.y0) / 1000 : 0);
+  const big = (lines || []).map(l => ({ ...l, text: ocrClean(l.text) })).filter(l => l.text && l.confidence > 55 && !skip(l.text)).sort((a,b) => hgt(b) - hgt(a));
+  const clean = s => s.replace(/[^\p{L}\p{N}&' .,%/-]/gu, ' ').replace(/\s+/g, ' ').replace(/\s+,/g, ',').trim().replace(/[,.]$/, '');
   let name = big[0] ? clean(big[0].text) : '';
   if(name && name === name.toUpperCase()) name = name.toLowerCase().replace(/(^|\s)\p{L}/gu, c => c.toUpperCase());
-  const rb = (text.match(/roasted by\s+([^\n]{2,40})/i) || text.match(/([A-Z][\w&' ]{2,30}(coffee roasters|roasters|roastery|coffee co))/) || [])[1] || '';
-  return { name: name || region || country, roaster: clean(rb), origin: [region, country].filter(Boolean).join(', '), process: proc ? proc[1] : '', roastLevel,
-    roastDate: findDate(text), varietal: vars.join(', '), altitude: alt ? alt.replace(/\s/g, '') + ' m' : '', flavourNotes: clean(nl) };
+  const rb = roasterName ? '' : (text.match(/roasted by\s+([^\n]{2,40})/i) || text.match(/([A-Z][\w&' ]{2,30}(coffee roasters|roasters|roastery|coffee co))/) || [])[1] || '';
+  const firstCountry = parts[0] ? (parts[0].region || parts[0].country) : '';
+  return { name: name || firstCountry, roaster: roasterName || clean(rb), origin, process: procs.join(' & '), roastLevel,
+    roastDate: findDate(text), varietal: vars.join(', '), altitude: alt ? alt.replace(/\s/g, '') + ' m' : '', flavourNotes: fixNotes(clean(notes)) };
 }
 function starterRecipe(bean, st){
   if(!st) return null;
   const g = grinderOf(st), z = gZone(g), n = g ? (g.nudge || 1) : 1;
-  const roast = bean.roastLevel || '', proc = (bean.process || '').toLowerCase(), origin = (bean.origin || '').toLowerCase();
+  let roast = bean.roastLevel || '', guessed = '';
+  if(!roast && (roast = roastFromNotes(bean.flavourNotes))) guessed = roast;
+  const proc = (bean.process || '').toLowerCase(), origin = (bean.origin || '').toLowerCase(), prof = noteProfile(bean.flavourNotes);
   const alt = num(String(bean.altitude || '').replace(/[.,](?=\d{3})/g, '').match(/\d{3,4}/)?.[0]);
   const days = daysOff(bean.roastDate);
   let step = 0, temp = 93, ratio = 16.5, bloomT = 45; const notes = [];
-  if(/light/.test(roast)){ temp = 95; ratio = 16; step -= 1; notes.push('light roast: hotter and a touch finer'); }
-  else if(/dark/.test(roast)){ temp = 90; ratio = 15.5; step += 2; notes.push('dark roast: cooler and coarser'); }
+  if(guessed) notes.push(`no roast level on the bag, but the ${guessed === 'light' ? 'fruity' : guessed === 'medium' ? 'chocolate and nut' : 'mixed'} notes point to ${guessed}`);
+  if(/medium-light/.test(roast)){ temp = 94; step -= 1; notes.push('light-medium roast: hot and a touch finer'); }
+  else if(/light/.test(roast)){ temp = 95; ratio = 16; step -= 1; notes.push('light roast: hotter and a touch finer'); }
   else if(/medium-dark/.test(roast)){ temp = 91; step += 1; }
-  if(/natural|anaerob|ferment|carbonic|thermal/.test(proc)){ temp -= 1; step += 1; notes.push('fermented or natural process: slightly cooler and coarser to keep it clean'); }
-  else if(/washed/.test(proc) && /ethiopia|kenya|rwanda|burundi/.test(origin)){ temp += 1; notes.push('washed East African: a bit hotter for brightness'); }
+  else if(/dark/.test(roast)){ temp = 90; ratio = 15.5; step += 2; notes.push('dark roast: cooler and coarser'); }
+  if(prof.sweet > prof.fruit && !/dark/.test(roast)){ temp -= 1; ratio = Math.min(ratio, 16); notes.push('chocolate and nut notes: a little cooler and stronger for body'); }
+  /* blends list the main origin first; its process leads */
+  const mainProc = proc.split('&')[0];
+  if(/natural|anaerob|ferment|carbonic|thermal|experimental/.test(mainProc)){ temp -= 1; step += 1; notes.push('fermented or natural process: slightly cooler and coarser to keep it clean'); }
+  else if(/washed/.test(mainProc) && /ethiopia|kenya|rwanda|burundi/.test(origin)){ temp += 1; notes.push('washed East African: a bit hotter for brightness'); }
   if(alt && alt >= 1900){ step -= 1; temp += 1; notes.push('high grown, dense beans: finer'); }
   if(days != null && days < 7){ bloomT = 60; notes.push('very fresh: longer bloom'); }
   else if(days != null && days > 35){ step -= 1; bloomT = 30; notes.push('older beans: finer, shorter bloom'); }
@@ -1404,25 +1498,94 @@ function starterRecipe(bean, st){
     pours:`Bloom ${dose * 3} g for ${bloomT} s, then three even pours to ${water} g.`,
     why: notes.length ? `Built from your grinder’s V60 range, with ${notes.join('; ')}.` : 'Built from your grinder’s V60 range. Log the cup and the tips take it from there.' };
 }
+/* image prep for OCR. 'tone': darkest colour channel (red or brown ink reads as dark) with stretched contrast.
+   'ink': same, then black/white against the local background and table rules removed — reads small print in boxes. */
+function ocrCanvas(img, long, rot, mode){
+  const w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height, s = long / Math.max(w0, h0);
+  const w = Math.max(1, Math.round(w0 * s)), h = Math.max(1, Math.round(h0 * s)), turn = rot % 180 !== 0;
+  const c = document.createElement('canvas'); c.width = turn ? h : w; c.height = turn ? w : h;
+  const x = c.getContext('2d', { willReadFrequently: true }); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+  x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+  x.translate(c.width / 2, c.height / 2); x.rotate(rot * Math.PI / 180); x.drawImage(img, -w / 2, -h / 2, w, h); x.setTransform(1, 0, 0, 1, 0, 0);
+  const W = c.width, H = c.height, id = x.getImageData(0, 0, W, H), d = id.data, N = W * H, g = new Uint8Array(N);
+  for(let i = 0, j = 0; i < N; i++, j += 4) g[i] = Math.min(d[j], d[j+1], d[j+2]);
+  const out = new Uint8Array(N);
+  if(mode === 'ink'){
+    const r = Math.max(8, Math.round(Math.max(W, H) / 170)), W1 = W + 1, ii = new Uint32Array(W1 * (H + 1));
+    for(let y = 0; y < H; y++){ let row = 0; for(let xx = 0; xx < W; xx++){ row += g[y*W + xx]; ii[(y+1)*W1 + xx + 1] = ii[y*W1 + xx + 1] + row; } }
+    const ink = new Uint8Array(N);
+    for(let y = 0; y < H; y++){ const y0 = Math.max(0, y - r), y1 = Math.min(H, y + r + 1);
+      for(let xx = 0; xx < W; xx++){ const x0 = Math.max(0, xx - r), x1 = Math.min(W, xx + r + 1);
+        const sum = ii[y1*W1 + x1] - ii[y0*W1 + x1] - ii[y1*W1 + x0] + ii[y0*W1 + x0];
+        ink[y*W + xx] = g[y*W + xx] < sum / ((y1 - y0) * (x1 - x0)) - 12 ? 1 : 0; } }
+    const run = Math.round(Math.max(W, H) / 40), kill = new Uint8Array(N);
+    for(let y = 0; y < H; y++){ let st = -1; for(let xx = 0; xx <= W; xx++){ const on = xx < W && ink[y*W + xx]; if(on && st < 0) st = xx; if(!on && st >= 0){ if(xx - st > run) for(let k = st; k < xx; k++) kill[y*W + k] = 1; st = -1; } } }
+    for(let xx = 0; xx < W; xx++){ let st = -1; for(let y = 0; y <= H; y++){ const on = y < H && ink[y*W + xx]; if(on && st < 0) st = y; if(!on && st >= 0){ if(y - st > run) for(let k = st; k < y; k++) kill[k*W + xx] = 1; st = -1; } } }
+    for(let i = 0; i < N; i++) out[i] = ink[i] && !kill[i] ? 0 : 255;
+  } else {
+    const hist = new Uint32Array(256); for(let i = 0; i < N; i++) hist[g[i]]++;
+    let lo = 0, hi = 255, acc = 0; const cut = N * 0.01;
+    while(lo < 255 && (acc += hist[lo]) < cut) lo++; acc = 0; while(hi > 0 && (acc += hist[hi]) < cut) hi--;
+    const span = Math.max(1, hi - lo); for(let i = 0; i < N; i++) out[i] = Math.max(0, Math.min(255, Math.round((g[i] - lo) * 255 / span)));
+  }
+  for(let i = 0, j = 0; i < N; i++, j += 4){ d[j] = d[j+1] = d[j+2] = out[i]; d[j+3] = 255; }
+  x.putImageData(id, 0, 0);
+  return c;
+}
+/* how much real text a pass found: confident words of three letters or more */
+function ocrScore(data){
+  const ws = (data && (data.words && data.words.length ? data.words : data.lines)) || [];
+  return ws.filter(w => w.confidence >= 70 && ((w.text || '').match(/\p{L}/gu) || []).length >= 3).length;
+}
 async function ocrRead(job){
   const box = $('#scan-box'), say = m => { if(box && scanJob === job) box.innerHTML = `<div class="grp tip"><span class="note"><span class="spin"></span>${m}</span></div>`; };
   say('Loading the label reader…');
+  let worker = null, stage = 'Reading the label';
   try {
     const T = await loadOcr();
-    const src = drawTo(job.img, 2000);
-    const res = await T.recognize(src, 'eng', { logger: m => {
-      if(m.status === 'recognizing text') say(`Reading the label… ${Math.round((m.progress || 0) * 100)}%`);
+    const logger = m => {
+      if(m.status === 'recognizing text') say(`${stage}… ${Math.round((m.progress || 0) * 100)}%`);
       else if(/load|initializ/.test(m.status || '')) say('Getting the label reader ready (first time only)…');
-    }});
-    if(!sheetOpen() || scanJob !== job) return;
-    const text = (res && res.data && res.data.text) || '';
+    };
+    if(T.createWorker) worker = await T.createWorker('eng', 1, { logger });
+    let psm = '3';
+    const rec = async (c, mode = '3') => {
+      if(worker && worker.setParameters && mode !== psm){ await worker.setParameters({ tessedit_pageseg_mode: mode }); psm = mode; }
+      const r = worker ? await worker.recognize(c) : await T.recognize(c, 'eng', { logger }); return (r && r.data) || {}; };
+    const alive = () => sheetOpen() && scanJob === job;
+    /* pass 1: whole label; if it finds little, try the photo turned 90/180/270° */
+    let rot = 0, A = await rec(ocrCanvas(job.img, 2000, 0, 'tone'));
+    if(!alive()) return;
+    if(ocrScore(A) < 6){
+      stage = 'Turning the photo to find the text';
+      let best = [ocrScore(await rec(ocrCanvas(job.img, 1000, 0, 'tone'))), 0];
+      for(const r of [90, 180, 270]){ if(!alive()) return; const s = ocrScore(await rec(ocrCanvas(job.img, 1000, r, 'tone'))); if(s > best[0] + 1) best = [s, r]; }
+      if(best[1]){ rot = best[1]; stage = 'Reading the label'; A = await rec(ocrCanvas(job.img, 2000, rot, 'tone')); }
+    }
+    if(!alive()) return;
+    /* pass 2: small print and boxed tables, read as scattered text so busy artwork doesn't hide it */
+    stage = 'Reading the small print';
+    const passes = [[A, 2000], [await rec(ocrCanvas(job.img, 3000, rot, 'ink'), '11'), 3000]];
+    if(!alive()) return;
+    const norm = (ls, long) => (ls || []).map(l => ({ text: l.text, confidence: l.confidence, h: l.bbox ? (l.bbox.y1 - l.bbox.y0) / long : 0 }));
+    const read = () => parseLabel(passes.map(p => p[0].text || '').join('\n\n'), passes.flatMap(([d, long]) => norm(d.lines, long)));
+    let bean = read();
+    /* pass 3, only when the key facts are still missing: an even closer look */
+    if(!bean.process || !(bean.roastLevel || bean.flavourNotes)){
+      stage = 'Taking a closer look';
+      passes.push([await rec(ocrCanvas(job.img, 4000, rot, 'ink'), '11'), 4000]);
+      if(!alive()) return;
+      bean = read();
+    }
+    const text = passes.map(p => p[0].text || '').join('');
     if(text.replace(/\W/g, '').length < 6) return showScanBox('Couldn’t read text on that photo. Try again closer to the label, in good light, or fill it in by hand.', true);
-    const bean = parseLabel(text, res.data.lines);
     const r = starterRecipe(bean, job.st);
     openBeanForm({ ...bean, photo: job.thumb, recipes: r && job.st ? { [job.st.id]: { ...r, at: Date.now() } } : {}, fromScan:true });
   } catch(e){
     if(!sheetOpen() || scanJob !== job) return;
     showScanBox((e && e.message) || 'The label reader stopped. Try again.', true);
+  } finally {
+    if(worker) worker.terminate().catch(() => {});
   }
 }
 

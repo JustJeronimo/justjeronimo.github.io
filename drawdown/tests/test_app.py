@@ -17,8 +17,30 @@ js = re.search(r'<script>([\s\S]*)</script>', html).group(1)
 with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as f: f.write(js)
 check('script parses', subprocess.run(['node', '--check', f.name]).returncode == 0)
 
+def tesseract_json(png, psm='3'):
+    """Stand-in for Tesseract.js in tests: the same engine (tesseract CLI), same result shape."""
+    import csv, io
+    with tempfile.TemporaryDirectory() as d:
+        open(os.path.join(d, 'in.png'), 'wb').write(png)
+        subprocess.run(['tesseract', os.path.join(d, 'in.png'), os.path.join(d, 'out'), '--psm', psm, 'txt', 'tsv'], capture_output=True)
+        text = open(os.path.join(d, 'out.txt')).read(); rows = list(csv.DictReader(io.StringIO(open(os.path.join(d, 'out.tsv')).read()), delimiter='\t', quoting=3))
+    words, lines = [], {}
+    for r in rows:
+        if r['level'] != '5' or not (r.get('text') or '').strip(): continue
+        x, y, w, h, c = (int(r['left']), int(r['top']), int(r['width']), int(r['height']), float(r['conf']))
+        words.append({'text': r['text'], 'confidence': c, 'bbox': {'x0': x, 'y0': y, 'x1': x + w, 'y1': y + h}})
+        k = (r['block_num'], r['par_num'], r['line_num']); L = lines.setdefault(k, {'w': [], 'x0': x, 'y0': y, 'x1': x + w, 'y1': y + h})
+        L['w'].append((r['text'], c)); L['x0'] = min(L['x0'], x); L['y0'] = min(L['y0'], y); L['x1'] = max(L['x1'], x + w); L['y1'] = max(L['y1'], y + h)
+    ls = [{'text': ' '.join(t for t, _ in L['w']), 'confidence': sum(c for _, c in L['w']) / len(L['w']), 'bbox': {k: L[k] for k in ('x0', 'y0', 'x1', 'y1')}} for L in lines.values()]
+    return {'text': text, 'words': words, 'lines': ls}
+
 class Quiet(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
+    def do_POST(self):
+        import base64
+        body = self.rfile.read(int(self.headers['Content-Length'])).decode()
+        out = json.dumps(tesseract_json(base64.b64decode(body.split(',', 1)[1]), self.headers.get('X-Psm', '3'))).encode()
+        self.send_response(200); self.send_header('Content-Type', 'application/json'); self.end_headers(); self.wfile.write(out)
 Handler = functools.partial(Quiet, directory=ROOT)
 socketserver.TCPServer.allow_reuse_address = True
 httpd = socketserver.TCPServer(('127.0.0.1', PORT), Handler)
@@ -147,8 +169,36 @@ with sync_playwright() as p:
     got = {k: pg3.evaluate(f"document.getElementById('{k}')?.value") for k in ['b-name', 'b-origin', 'b-process', 'b-date']}
     check('web label reader', got == {'b-name': 'Finca El Paraiso', 'b-origin': 'Cauca, Colombia', 'b-process': 'Anaerobic washed', 'b-date': '2026-11-09'}, str(got))
     pg3.click('#sheet-save'); pg3.wait_for_timeout(700)
-    check('web starter recipe', pg3.evaluate("Object.values(S.beans.find(b => b.name === 'Finca El Paraiso').recipes)[0]?.grind") == '4.2')
+    # strawberry/lychee/rose with no roast printed → guessed light (a click finer), anaerobic → a click coarser
+    check('web starter recipe', pg3.evaluate("Object.values(S.beans.find(b => b.name === 'Finca El Paraiso').recipes)[0]?.grind") == '4.1')
     check('no page errors (web scan)', not errs3, '; '.join(errs3))
+
+    # 8. real bag photos through the full scan: canvas prep in Chrome, OCR by the tesseract engine, rules → recipe
+    MOCK_TESS = "window.__psm='3';window.Tesseract={createWorker:async(l,n,o)=>({setParameters:async p=>{window.__psm=p.tessedit_pageseg_mode;},recognize:async c=>{o.logger({status:'recognizing text',progress:.5});const r=await fetch('/__ocr',{method:'POST',headers:{'X-Psm':window.__psm},body:c.toDataURL('image/png')});return {data:await r.json()};},terminate:async()=>{}})};"
+    LABELS = [
+      ('sogongera.png', {'b-name': 'Sogongera', 'b-roaster': 'Stean’s Beans', 'b-origin': 'Rwanda', 'b-process': 'Experimental', 'b-roast': 'medium-light'},
+       {'dose': 15, 'water': 250, 'grind': '4.1', 'temp': 93}),
+      ('motto.jpg', {'b-name': 'Motto', 'b-roaster': 'Stooker', 'b-origin': '75% Minas Gerais, Brazil / 25% Tolima, Colombia', 'b-process': 'Natural & Washed', 'b-roast': ''},
+       {'dose': 15, 'water': 240, 'grind': '4.2', 'temp': 91}),
+      ('bombe.jpg', {'b-name': 'Bombe', 'b-process': 'Natural', 'b-date': '2026-10-12', 'b-roast': ''},
+       {'dose': 15, 'water': 240, 'grind': '4', 'temp': 94, 'bloomTime': 30}),
+    ]
+    notes_want = {'sogongera.png': 'Peach, Wild Strawberry, Speculaas, Chestnut', 'motto.jpg': 'Roasted Almond, Maple Syrup & Milk Chocolate', 'bombe.jpg': 'Strawberry, Blueberry jam, Lemon verbena'}
+    for fn, want, rec in LABELS:
+        pg4, errs4 = page(MOCK_TESS)
+        pg4.clock.set_fixed_time('2026-11-17T20:00:00')
+        pg4.goto(URL + '#beans'); pg4.wait_for_timeout(700)
+        pg4.set_input_files('#pick', os.path.join(ROOT, 'drawdown', 'tests', 'labels', fn)); pg4.wait_for_timeout(1200)
+        pg4.click('[data-act=readLabel]')
+        pg4.wait_for_selector('#b-name', timeout=180000); pg4.wait_for_timeout(300)
+        got = {k: pg4.evaluate(f"document.getElementById('{k}')?.value") for k in want}
+        flav = pg4.evaluate("document.getElementById('b-flav')?.value")
+        check(f'label {fn}: fields', got == want, f'{got} · notes: {flav}')
+        check(f'label {fn}: tasting notes', flav == notes_want[fn], flav)
+        pg4.click('#sheet-save'); pg4.wait_for_timeout(700)
+        r = pg4.evaluate("(n => { const b = S.beans.find(b => b.name === n); return b ? Object.values(b.recipes || {})[0] || {} : {}; })", want['b-name'])
+        check(f'label {fn}: recipe', all(r.get(k) == v for k, v in rec.items()), str({k: r.get(k) for k in list(rec) + ['why']}))
+        check(f'label {fn}: no page errors', not errs4, '; '.join(errs4))
     b.close()
 httpd.shutdown()
 print('ALL PASS' if not fails else f'{len(fails)} FAILED: ' + ', '.join(fails))
