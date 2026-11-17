@@ -652,7 +652,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.8 · 17 Nov 2026';
+const APP_VERSION = '1.9 · 17 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -902,6 +902,42 @@ function toastErr(msg){ const d = document.createElement('div'); d.className = '
 
 /* ---------- form widgets ---------- */
 function frow(id, label, val, attrs = ''){ return `<div class="frow"><label for="${id}">${label}</label><input id="${id}" value="${esc(val ?? '')}" ${attrs}></div>`; }
+/* ---------- sounds: tiny Web Audio synths, no files ----------
+   tick = slider step / clock second, tap = buttons, chime = next pour, start/stop. Off in Settings. */
+const SFX = (() => {
+  let ctx = null, on = true, last = 0;
+  try { on = localStorage.getItem('drawdown-sound') !== 'off'; } catch(e){}
+  const unlock = () => { if(!on) return; try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if(ctx.state === 'suspended') ctx.resume(); } catch(e){ ctx = null; } };
+  addEventListener('pointerdown', unlock, { capture:true, passive:true });
+  const tone = (freq, dur, gain = .05, type = 'sine', to = null, delay = 0) => {
+    if(!on || !ctx || ctx.state !== 'running') return;
+    const t = ctx.currentTime + delay, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t); if(to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + .003); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + dur + .02);
+  };
+  const noise = (dur, gain, freq) => {
+    if(!on || !ctx || ctx.state !== 'running') return;
+    const t = ctx.currentTime, n = Math.ceil(ctx.sampleRate * dur), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+    for(let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 4);
+    const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 1.4; g.gain.value = gain;
+    src.buffer = buf; src.connect(f).connect(g).connect(ctx.destination); src.start(t);
+  };
+  return {
+    get on(){ return on; },
+    set(v){ on = v; try { localStorage.setItem('drawdown-sound', v ? 'on' : 'off'); } catch(e){} if(v){ unlock(); this.tap(); } },
+    // slider detent: a short click whose pitch follows the value (0..1); throttled so fast drags don't buzz
+    tick(f = .5){ const n = performance.now(); if(n - last < 28) return; last = n; noise(.012, .5, 1800 + f * 2600); tone(900 + f * 900, .025, .018, 'triangle'); },
+    tap(){ noise(.018, .35, 2400); },
+    second(){ noise(.01, .18, 3200); },
+    chime(){ tone(784, .5, .045, 'sine'); tone(1175, .6, .03, 'sine', null, .07); },
+    start(){ tone(520, .14, .05, 'sine', 880); },
+    stop(){ tone(700, .16, .05, 'sine', 420); },
+    snap(){ tone(1200, .05, .03, 'triangle', 900); }
+  };
+})();
+
 /* ---------- sliders: a vanilla port of DialKit's slider (Josh Puckett, MIT, github.com/joshpuckett/dialkit) ----------
    label inside the track, value on the right, fill follows the finger 1:1, rubber band past the ends,
    tap snaps (to the nearest step, or the nearest tenth if close) with a spring, tap the value to type one.
@@ -932,7 +968,7 @@ function wireDial(dk, r){
   };
   const toPct = v => (v - min) / (max - min) * 100;
   const round = v => { v = Math.round((v - min) / step) * step + min; return Math.max(min, Math.min(max, +v.toFixed(4))); };
-  const set = v => { const c = round(v); if(+r.value !== c){ r.value = c; r.dispatchEvent(new Event('input', { bubbles:true })); } };
+  const set = v => { const c = round(v); if(+r.value !== c){ r.value = c; r.dispatchEvent(new Event('input', { bubbles:true })); SFX.tick((c - min) / (max - min)); } };
   const stopSpring = () => { cancelAnimationFrame(raf); raf = 0; };
   const springTo = target => { // stiffness 300, damping 25, mass .8 (DialKit's click spring)
     stopSpring(); if(reduceMotion()){ pct = target; return paint(); }
@@ -974,7 +1010,7 @@ function wireDial(dk, r){
       let snap = raw;
       if(n <= 10) snap = min + Math.round((raw - min) / step) * step;
       else { const nm = (raw - min) / (max - min), near = Math.round(nm * 10) / 10; if(Math.abs(nm - near) <= .03125) snap = min + near * (max - min); }
-      set(snap); springTo(toPct(+r.value));
+      set(snap); SFX.snap(); springTo(toPct(+r.value));
     } else { pct = toPct(+r.value); paint(); }
     setActive(false, false);
   };
@@ -1098,7 +1134,8 @@ function setTxt(el, v){ if(el && el.textContent !== v) el.textContent = v; }
 function paintTimer(){
   const clock = $('#h-t'); if(!clock) return;
   const p = curPlan(), ph = phases(p), L = ph.list, ms = tNow(), s = ms / 1000, started = T.run || ms > 0;
-  rollTo(clock, fmtTime(Math.floor(s)));
+  const tt = fmtTime(Math.floor(s)); if(T.run && clock.dataset.v && clock.dataset.v !== tt) SFX.second();
+  rollTo(clock, tt);
   $('#h-f').style.transform = `scaleX(${Math.min(1, s / ph.total).toFixed(4)})`;
   const k = started ? phaseIdx(L, s) : -1, x = L[Math.max(0, k)], nx = L[k + 1];
   const st = setupById(p.setupId) || curSetup(), g = grinderOf(st);
@@ -1115,6 +1152,7 @@ function paintTimer(){
   setTxt($('#h-s'), t.say); setTxt($('#h-u'), t.sub);
   const n = started ? nx : L[1];
   setTxt($('#h-n'), n ? `${fmtTime(n.at)} · ${n.drain ? 'drawdown' : 'to ' + n.total + ' g'}` : `stop at ${fmtTime(ph.target)}`);
+  if(!first && started && T.run) SFX.chime();
   if(!first && !reduceMotion()) [$('#h-s'), $('#h-u'), $('.h-next')].forEach(el => restartAnim(el, 'swap'));
 }
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1829,6 +1867,7 @@ function openSettings(){
       <div class="cell"><span class="c-main"><span class="c-title">Version</span></span><span class="c-val num">${esc(APP_VERSION)}</span></div>
       <div class="cell"><span class="c-main"><span class="c-title">Brews saved on</span></span><span class="c-val">${where}</span></div>
       <div class="cell"><span class="c-main"><span class="c-title">Photo reading</span></span><span class="c-val">${AI ? 'AI (Claude)' : 'On your phone'}</span></div>
+      <div class="cell"><span class="c-main"><span class="c-title">Sounds</span><span class="c-sub">Slider ticks, timer, pour chimes. Your mute switch wins.</span></span><button class="link" id="snd" data-act="sound" aria-pressed="${SFX.on}">${SFX.on ? 'On' : 'Off'}</button></div>
     </div>
     <div id="upd" style="margin-top:12px"><div class="btn-row"><button class="btn" data-act="checkUpdate">Check for update</button></div></div>
     <p class="foot">drawdown · ${[[S.brews.length,'brew'],[S.beans.length,'bean'],[S.setups.length,'setup']].map(([n,w]) => n + ' ' + w + (n === 1 ? '' : 's')).join(' · ')}</p>`);
@@ -1857,8 +1896,9 @@ const ACT = {
   timerToggle(){
     if(T.run) stopTimer(false);
     else { T.start = Date.now(); T.run = true; document.body.classList.add('timing'); T.raf = requestAnimationFrame(loop); }
-    flow.step = 3; render(); },
-  timerStop(){ stopTimer(false); goStep(4); },
+    T.run ? SFX.start() : SFX.stop(); flow.step = 3; render(); },
+  timerStop(){ stopTimer(false); SFX.stop(); goStep(4); },
+  sound(){ SFX.set(!SFX.on); const b = $('#snd'); if(b){ b.textContent = SFX.on ? 'On' : 'Off'; b.setAttribute('aria-pressed', String(SFX.on)); } },
   timerSkip(){ if(!T.run) return; const L = phases(curPlan()).list, nx = L[phaseIdx(L, tNow() / 1000) + 1]; if(!nx) return; T.acc = nx.at * 1000; T.start = Date.now(); paintTimer(); },
   timerReset(){ stopTimer(true); flow.step = 3; render(); },
   step(i){ goStep(+i); },
@@ -1920,7 +1960,7 @@ const ACT = {
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if(!b || b.disabled) return;
   const f = ACT[b.dataset.act]; if(!f) return;
-  e.preventDefault(); f(b.dataset.id, b, e);
+  e.preventDefault(); if(!['timerToggle','timerStop','sound'].includes(b.dataset.act)) SFX.tap(); f(b.dataset.id, b, e);
 });
 $('#cam').addEventListener('change', e => { const f = e.target.files?.[0]; if(f) onPhoto(f); });
 $('#pick').addEventListener('change', e => { const f = e.target.files?.[0]; if(f) onPhoto(f); });
