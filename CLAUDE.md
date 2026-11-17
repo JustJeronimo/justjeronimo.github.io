@@ -11,9 +11,9 @@ Context for Claude working in this repo. Read it before changing anything.
 
 ## This repo
 
-- GitHub Pages site for **jbaars.com** (see `CNAME`). Branch `master` deploys.
+- GitHub Pages site at **justjeronimo.github.io** (no custom domain; the old jbaars.com CNAME was removed because that domain points elsewhere). Branch `master` deploys.
 - Root is a built Vue site (`index.html`, `about.html`, `static/…`). Don't touch it unless asked.
-- `coffee/` is **drawdown**, the coffee app → **jbaars.com/coffee/**.
+- `coffee/` is **drawdown**, the coffee app → **https://justjeronimo.github.io/coffee/**.
 - `_config.yml` keeps this file out of the published site.
 
 ## drawdown: the app
@@ -25,7 +25,7 @@ Features: setups (brewer, hand or electric grinder, kettle, filter); beans (scan
 ### Code
 
 - One file: `coffee/index.html` — vanilla JS, no build step, no dependencies. Plus `manifest.webmanifest` and `assets/` (icons, mark SVGs).
-- **Storage adapters:** `cloudStore` (Claude artifact `db`, per user at `data/users/<id>`) when `window.claude` exists; otherwise `localStorage` key `brewlog-v1`. On jbaars.com there is no `window.claude`, so data is **per device/browser only** and AI is off (UI says so).
+- **Storage adapters:** `cloudStore` (Claude artifact `db`, per user at `data/users/<id>`) when `window.claude` exists; otherwise `localStorage` key `brewlog-v1`. On GitHub Pages there is no `window.claude`, so data is **per device/browser only** and AI is off (UI says so).
 - Docs in one collection, `kind`: `setup` | `bean` | `brew` | `prefs`. `prefs.plan` is the recipe queued on the Brew screen; cleared after logging.
 - `curPlan()` priority: saved plan → last brew's advice → last brew → starter recipe from the grinder's V60 start.
 - `pourPlan()`: bloom + 3–4 pours, 30 s apart after bloom.
@@ -59,6 +59,5 @@ Inspired by the *feel* of the beean app (black, italic serif titles, square, out
 
 ## Open items
 
-- GitHub pushes from Claude are blocked until the Claude GitHub App is installed for this repo.
-- AI photo reading + sync on jbaars.com would need a small backend (Claude API key + database).
+- AI photo reading + sync on GitHub Pages would need a small backend (Claude API key + database).
 - Ideas not built yet: grind converter between grinders, water-by-TDS guide, cup-label share cards.
