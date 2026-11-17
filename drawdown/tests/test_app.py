@@ -149,6 +149,15 @@ with sync_playwright() as p:
     check('adjust saves', pg.evaluate("curPlan().water") == 210 and pg.evaluate("curPlan().dose") == 16.5 and pg.evaluate("curPlan().grind") == '4.2', str(pg.evaluate("curPlan()")))
     pg.evaluate("save({ ...S.prefs, plan:null })"); pg.wait_for_timeout(300)
 
+    # 2b. roast level from tasting notes alone (flavour-wheel lexicon)
+    NOTES = {'Jasmine, bergamot, white peach': 'light', 'Blackcurrant, hibiscus, black tea': 'light', 'Strawberry, Blueberry jam, Lemon verbena': 'light',
+             'Peach, Wild Strawberry, Speculaas, Chestnut': 'medium-light', 'Red apple, honey, almond': 'medium-light',
+             'Milk chocolate, caramel, hazelnut': 'medium', 'Roasted Almond, Maple Syrup & Milk Chocolate': 'medium', 'Brown sugar, cocoa, toasted nuts': 'medium',
+             'Smoky, dark chocolate, molasses': 'medium-dark', 'Tobacco, cedar, bittersweet cocoa': 'medium-dark', 'Smoky, charred wood, tobacco': 'dark', 'Nothing useful here': ''}
+    got = pg.evaluate("n => Object.fromEntries(Object.keys(n).map(k => [k, roastFromNotes(k)]))", NOTES)
+    check('roast from tasting notes', got == NOTES, str({k: v for k, v in got.items() if v != NOTES[k]}))
+    check('flavour words found', pg.evaluate("noteWords('Notes of Rosehip, candied orange & cocoa nibs').join()") == 'candied orange,cocoa nibs,rosehip', pg.evaluate("noteWords('Notes of Rosehip, candied orange & cocoa nibs').join()"))
+
     # 3. quick tip without AI moves the Ode one click finer
     check('rule tip', pg.evaluate("ruleAdvice(brewById('brew_a'), setupById('setup_a')).next.grind") == '3.2')
 
@@ -230,11 +239,12 @@ with sync_playwright() as p:
     LABELS = [
       ('sogongera.png', {'b-name': 'Sogongera', 'b-roaster': 'Stean’s Beans', 'b-origin': 'Rwanda', 'b-process': 'Experimental', 'b-roast': 'medium-light'},
        {'dose': 15, 'water': 250, 'grind': '4.1', 'temp': 93}),
-      ('motto.jpg', {'b-name': 'Motto', 'b-roaster': 'Stooker', 'b-origin': '75% Minas Gerais, Brazil / 25% Tolima, Colombia', 'b-process': 'Natural & Washed', 'b-roast': ''},
+      ('motto.jpg', {'b-name': 'Motto', 'b-roaster': 'Stooker', 'b-origin': '75% Minas Gerais, Brazil / 25% Tolima, Colombia', 'b-process': 'Natural & Washed', 'b-roast': 'medium'},
        {'dose': 15, 'water': 240, 'grind': '4.2', 'temp': 91}),
-      ('bombe.jpg', {'b-name': 'Bombe', 'b-process': 'Natural', 'b-date': '2026-10-12', 'b-roast': ''},
+      ('bombe.jpg', {'b-name': 'Bombe', 'b-process': 'Natural', 'b-date': '2026-10-12', 'b-roast': 'light'},
        {'dose': 15, 'water': 240, 'grind': '4', 'temp': 94, 'bloomTime': 30}),
     ]
+    want_top = {'sogongera.png': ['Light', 'Fermented'], 'motto.jpg': ['Medium', 'Natural'], 'bombe.jpg': ['Light', 'Natural']}
     notes_want = {'sogongera.png': 'Peach, Wild Strawberry, Speculaas, Chestnut', 'motto.jpg': 'Roasted Almond, Maple Syrup & Milk Chocolate', 'bombe.jpg': 'Strawberry, Blueberry jam, Lemon verbena'}
     for fn, want, rec in LABELS:
         pg4, errs4 = page(MOCK_TESS)
@@ -250,6 +260,22 @@ with sync_playwright() as p:
         pg4.click('#sheet-save'); pg4.wait_for_timeout(700)
         r = pg4.evaluate("(n => { const b = S.beans.find(b => b.name === n); return b ? Object.values(b.recipes || {})[0] || {} : {}; })", want['b-name'])
         check(f'label {fn}: recipe', all(r.get(k) == v for k, v in rec.items()), str({k: r.get(k) for k in list(rec) + ['why']}))
+        # beans detail (Label layout): roast tabs + process on top, recipe code matches
+        top = pg4.evaluate("[...document.querySelectorAll('#sheet-body .bk-key .on')].map(e => e.textContent)")
+        code = pg4.inner_text('#bk-code') if pg4.locator('#bk-code').count() else ''
+        check(f'label {fn}: detail shows roast + process', top == want_top[fn] and code.startswith(f"15/{rec['water']} · G{rec['grind']} · {rec['temp']}°"), f'{top} · {code}')
+        pg4.screenshot(path=f'/tmp/drawdown-bean-{fn.split(".")[0]}.png')
+        if fn == 'bombe.jpg':
+            pg4.click('#sheet-body .bk-tabs [data-v=dark]'); pg4.wait_for_timeout(400)
+            check('detail: roast tab redoes recipe', pg4.inner_text('#bk-code') != code and 'Set by you' in pg4.inner_text('.bk-key'), pg4.inner_text('#bk-code'))
+            pg4.click('#sheet-body [data-act=beanOrigin]'); pg4.wait_for_timeout(300)
+            pg4.click('#sheet-body [data-act=originPick][data-v=Kenya]'); pg4.click('#origin-form button[type=submit]'); pg4.wait_for_timeout(500)
+            ob = pg4.evaluate("S.beans.find(b => b.name === 'Bombe')")
+            check('detail: add origin by hand', ob['origin'] == 'Kenya' and 'Kenya' in pg4.inner_text('.bk-card') and not pg4.locator('#origin-form').count(), ob['origin'])
+            pg4.click('#sheet-body .bk-seg [data-v=washed]'); pg4.wait_for_timeout(400)
+            ob = pg4.evaluate("S.beans.find(b => b.name === 'Bombe')")
+            check('detail: washed Kenyan gets hotter', ob['process'] == 'Washed' and '+1°' in pg4.inner_text('.bk-key'), pg4.inner_text('.bk-key'))
+            pg4.screenshot(path='/tmp/drawdown-bean-edited.png')
         check(f'label {fn}: no page errors', not errs4, '; '.join(errs4))
     b.close()
 httpd.shutdown()

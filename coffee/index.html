@@ -222,6 +222,53 @@ input[type=range]::-moz-range-thumb{width:28px;height:28px;border:0;border-radiu
 .brew-gimg{position:absolute;right:-8px;top:4px;width:72px;height:72px}
 .thumb-g{width:48px;height:48px;background:#121212}
 #sheet .thumb-g{background:#1c1c1c}
+/* ---------- beans detail · Label (v1.8, picked from prototypes) ---------- */
+.bk-hero{position:relative;margin:-4px -16px 0}
+.bk-hero img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:0}
+.bk-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,transparent 45%,#000)}
+.bk-name{position:relative;z-index:1;padding:0 4px;margin:6px 0 4px}
+.bk-hero + .bk-name{margin-top:-58px}
+.bk-name h2{margin:0;font:italic 400 58px/.95 var(--serif);letter-spacing:-.02em;text-wrap:balance}
+.bk-name p{color:var(--sec);margin:8px 0 0;font-size:15px}
+.bk-key{background:var(--grp);padding:14px 16px 16px;margin-top:14px}
+.bk-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px}
+.bk-h .cap{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--sec)}
+.bk-h .src{flex:1;font-size:13px;color:var(--sec)}
+.bk-h u{text-decoration:none;font:13px var(--mono);color:var(--label);white-space:nowrap}
+.bk-h u.z{color:var(--ter)}
+.bk-tabs button,.bk-seg button,.bk-chips button,.bk-f{appearance:none;-webkit-appearance:none;border:0;border-radius:0;background:none}
+.bk-tabs,.bk-seg{display:grid;gap:2px;background:var(--grp2);padding:2px}
+.bk-tabs{grid-template-columns:repeat(3,1fr)}
+.bk-seg{grid-template-columns:repeat(4,1fr)}
+.bk-tabs button{min-height:48px;font-size:17px;color:var(--sec)}
+.bk-seg button{min-height:40px;font-size:14px;color:var(--sec);padding:0 2px}
+.bk-tabs button.on,.bk-seg button.on{background:var(--label);color:#000}
+.bk-tabs.g button.on{background:transparent;color:var(--label);box-shadow:inset 0 0 0 1.5px var(--label);outline:1px dashed var(--label);outline-offset:-6px}
+.bk-tabs button:active,.bk-seg button:active,.bk-f:active,.bk-chips button:active{transform:scale(.97)}
+.bk-gap{height:16px}
+.bk-note{font-size:13px;color:var(--sec);margin:12px 0 0}
+.bk-card{margin-top:2px;background:var(--label);color:#000;padding:2px}
+.bk-grid{display:grid;grid-template-columns:1fr 1fr}
+.bk-f{min-height:74px;padding:12px 12px 10px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;gap:6px;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.35);color:#000;background:none;font:inherit}
+.bk-f.wide{grid-column:1 / -1}
+.bk-f small{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#5c5a55}
+.bk-f span{font-size:16px;line-height:1.25;overflow-wrap:anywhere}
+.bk-f.none span{color:#8c8a84}
+.bk-f.on{outline:1.5px solid #000;outline-offset:-6px}
+.bk-code{display:flex;flex-direction:column;gap:8px;padding:14px 12px;background:#000;color:var(--label)}
+.bk-code .cap{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--sec)}
+.bk-code b{font:500 22px/1 var(--mono);letter-spacing:-.02em;white-space:nowrap;display:inline-block}
+.bk-why{margin:16px 4px 4px;padding:0;font:italic 400 21px/1.25 var(--serif);color:var(--label)}
+.bk-why em{display:block;font:400 13px/1.35 var(--font);color:var(--sec);margin-top:8px}
+.bk-edit{background:var(--grp);padding:14px 16px 16px;margin-top:2px}
+.bk-edit input{display:block;width:100%;min-height:52px;padding:0 14px;background:#000;color:var(--label);border:0;border-radius:0;box-shadow:inset 0 0 0 1.5px var(--label);font:400 17px var(--font);outline:none;-webkit-appearance:none}
+.bk-edit input::placeholder{color:var(--ter)}
+.bk-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.bk-chips button{min-height:36px;padding:0 12px;box-shadow:inset 0 0 0 1px var(--sep);font-size:14px;color:var(--sec)}
+.bk-chips button.on{background:var(--label);color:#000;box-shadow:none}
+.bk-b{display:inline-block;animation:hIn .52s var(--spring-soft) both}
+@media (prefers-reduced-motion:reduce){.bk-b{animation:none}}
+
 /* ---------- drawdown v2 · mono (brand guide v2) ----------
    black ground, milk text, square corners, outlined secondary buttons, hairlines,
    italic serif titles, Geist for the interface, water blue as the only colour */
@@ -684,7 +731,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.11 · 17 Nov 2026';
+const APP_VERSION = '1.12 · 17 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -1546,13 +1593,16 @@ function openBeanForm(pre = {}, editId = null, note = ''){
     ${note ? `<div class="err">${esc(note)}</div>` : ''}
     ${pre.photo ? `<img class="hero" src="${esc(pre.photo)}" alt="Photo of the bag">` : ''}
     ${pre.fromScan ? `<p class="foot">${AI ? 'Read from your photo.' : 'Read from your photo on your phone; it can miss things.'} Check the details, then save.</p>` : ''}
+    <div class="sec-h"><span>Roast and process</span>${pre.roastFrom === 'notes' && pre.roastLevel ? '<span>Roast guessed from the notes</span>' : ''}</div>
+    <div class="grp">
+      <div class="frow"><label for="b-roast">Roast level</label><select id="b-roast">${roastOpts}</select></div>
+      ${frow('b-process','Process', pre.process, 'list="procs" placeholder="Washed"')}
+    </div>
     <div class="sec-h"><span>Coffee</span></div>
     <div class="grp">
       ${frow('b-name','Name', pre.name, 'placeholder="e.g. Kochere"')}
       ${frow('b-roaster','Roaster', pre.roaster, 'placeholder="Roaster"')}
       ${frow('b-origin','Origin', pre.origin, 'placeholder="Country, region"')}
-      ${frow('b-process','Process', pre.process, 'list="procs" placeholder="Washed"')}
-      <div class="frow"><label for="b-roast">Roast level</label><select id="b-roast">${roastOpts}</select></div>
       ${frow('b-date','Roast date', pre.roastDate, 'type="date"')}
     </div>
     <datalist id="procs"><option>Washed</option><option>Natural</option><option>Honey</option><option>Anaerobic</option><option>Wet-hulled</option></datalist>
@@ -1574,34 +1624,99 @@ function openBeanForm(pre = {}, editId = null, note = ''){
       process: $('#b-process').value.trim(), roastLevel: $('#b-roast').value, roastDate: $('#b-date').value,
       varietal: $('#b-var').value.trim(), altitude: $('#b-alt').value.trim(), flavourNotes: $('#b-flav').value.trim(),
       notes: $('#b-notes').value.trim(), photo: draftBean.photo, recipes: draftBean.recipes };
+    /* roast still the guess from the notes → keep it marked as a guess; otherwise it's the user's (or the bag's) */
+    b.roastFrom = b.roastLevel && b.roastLevel === pre.roastLevel && pre.roastFrom === 'notes' ? 'notes' : '';
+    if(b.roastLevel !== (old ? old.roastLevel : pre.roastLevel) && b.roastLevel) b.roastBy = 'you';
+    const st = curSetup(), keys = ['roastLevel','process','origin','roastDate','altitude','flavourNotes'];
+    if(st && !AI && old && keys.some(k => (old[k] || '') !== (b[k] || ''))){ const r = starterRecipe(b, st); if(r) b.recipes = { ...(b.recipes || {}), [st.id]: { ...r, at: Date.now() } }; }
     save(b); ensurePalette(b.id); if(!old){ const p = curPlan(); flow.step = null; flow.noBean = false; setPlan({ ...p, beanId: b.id }, p.source); } openBeanDetail(b.id);
   };
 }
-function openBeanDetail(id){
-  const b = beanById(id); if(!b) return closeSheet();
-  const st = curSetup(), r = st && b.recipes?.[st.id];
-  const brews = S.brews.filter(x => x.beanId === id), d = daysOff(b.roastDate);
-  const best = [...brews].filter(x => x.rating).sort((a,c) => c.rating - a.rating)[0];
-  const info = [['Process', b.process], ['Roast', b.roastLevel], ['Roast date', b.roastDate ? b.roastDate + (d != null ? ` · ${d} d` : '') : 'Unknown'], ['Varietal', b.varietal], ['Altitude', b.altitude], ['On the bag', b.flavourNotes]].filter(x => x[1]);
-  openSheet('Beans', `
-    ${b.photo ? `<img class="hero" src="${esc(b.photo)}" alt="Photo of the bag">` : ''}
+/* ---------- beans detail · Label ---------- */
+const R3 = [['light','Light'],['medium','Medium'],['dark','Dark']];
+const r3of = v => /light/.test(v) ? 'light' : /dark/.test(v) ? 'dark' : v ? 'medium' : '';
+const PROC4 = [['washed','Washed'],['natural','Natural'],['fermented','Fermented'],['honey','Honey']];
+function procFamily(p){ const m = String(p || '').toLowerCase().split('&')[0];
+  return /anaerob|ferment|carbonic|experimental|thermal|maceration/.test(m) ? 'fermented' : /honey/.test(m) ? 'honey' : /natural/.test(m) ? 'natural' : /washed|wet/.test(m) ? 'washed' : ''; }
+const POPULAR_ORIGINS = ['Ethiopia','Kenya','Colombia','Brazil','Rwanda','Burundi','Guatemala','Honduras','Costa Rica','Peru','Panama','El Salvador'];
+/* what one label fact does to the recipe: compare with that fact neutral */
+function recipeShift(a, b, g){
+  if(!a || !b) return '';
+  const out = [];
+  if(g && g.kind !== 'text'){ const ia = gIdx(g, a.grind), ib = gIdx(g, b.grind); if(ia != null && ib != null && ia !== ib){ const c = Math.round((ia - ib) / (g.nudge || 1)) || Math.sign(ia - ib); out.push(`${Math.abs(c)} ${c < 0 ? 'finer' : 'coarser'}`); } }
+  if(a.temp !== b.temp) out.push(`${a.temp > b.temp ? '+' : '−'}${Math.abs(a.temp - b.temp)}°`);
+  if(a.water !== b.water) out.push(`${a.water > b.water ? '+' : '−'}${Math.abs(a.water - b.water)} g`);
+  return out.join(' · ');
+}
+let beanEdit = null; /* 'origin' while the origin editor is open */
+function beanDetailHTML(b){
+  const st = curSetup(), g = grinderOf(st), r = st && b.recipes?.[st.id], d = daysOff(b.roastDate);
+  const brews = S.brews.filter(x => x.beanId === b.id), best = [...brews].filter(x => x.rating).sort((a,c) => c.rating - a.rating)[0];
+  const guessed = b.roastFrom === 'notes' || !b.roastLevel, rv = b.roastLevel || roastFromNotes(b.flavourNotes), guess = guessed && rv ? rv : '';
+  const roastSrc = b.roastBy === 'you' ? 'Set by you' : guess ? 'Not on the bag · guessed from the notes' : b.roastLevel ? `On the bag: ${b.roastLevel.replace('medium-light', 'light-medium')}` : 'Not on the bag · pick one';
+  const fam = procFamily(b.process), procSrc = b.procBy === 'you' ? 'Set by you' : b.process ? `On the bag: ${esc(b.process.toLowerCase())}` : 'Not on the bag · pick one';
+  const shR = st && rv ? recipeShift(starterRecipe({ ...b, roastLevel: rv }, st), starterRecipe({ ...b, roastLevel: 'medium' }, st), g) : '';
+  const shP = st && fam ? recipeShift(starterRecipe(b, st), starterRecipe({ ...b, process: '' }, st), g) : '';
+  const field = (label, val, wide, act) => `<${act ? `button type="button" data-act="${act}" data-id="${b.id}"` : 'div'} class="bk-f ${wide ? 'wide' : ''} ${val ? '' : 'none'} ${act && beanEdit === 'origin' ? 'on' : ''}"><small>${label}</small><span>${val ? esc(val) : (act ? 'Add origin +' : 'Not on the bag')}</span></${act ? 'button' : 'div'}>`;
+  const more = b.altitude ? ['Altitude', b.altitude] : b.varietal ? ['Varietal', b.varietal] : ['Altitude', ''];
+  return `
+    ${b.photo ? `<div class="bk-hero"><img src="${esc(b.photo)}" alt="Photo of the bag"></div>` : ''}
+    <div class="bk-name"><h2>${esc(beanLabel(b))}</h2><p>${esc(b.roaster || 'Roaster not on the label')}</p></div>
     ${palHTML(beanPalette(b), 'pal-row')}
-    <h2 class="d-title">${esc(beanLabel(b))}</h2>
-    <p class="d-sub">${esc([b.roaster, b.origin].filter(Boolean).join(' · ') || ' ')}</p>
-    ${info.length ? `<div class="sec-h"><span>Details</span></div><div class="grp dgrid">${info.map(x => `<div><small>${x[0]}</small><span>${esc(x[1])}</span></div>`).join('')}</div>` : ''}
+    <div class="bk-key">
+      <div class="bk-h"><span class="cap">Roast</span><span class="src">${roastSrc}</span><u class="${shR ? '' : 'z'}">${shR || 'no change'}</u></div>
+      <div class="bk-tabs ${guess ? 'g' : ''}" role="tablist" aria-label="Roast level">${R3.map(o => `<button type="button" role="tab" aria-selected="${r3of(rv) === o[0]}" class="${r3of(rv) === o[0] ? 'on' : ''}" data-act="beanRoast" data-id="${b.id}" data-v="${o[0]}">${o[1]}</button>`).join('')}</div>
+      <div class="bk-gap"></div>
+      <div class="bk-h"><span class="cap">Process</span><span class="src">${procSrc}</span><u class="${shP ? '' : 'z'}">${shP || 'no change'}</u></div>
+      <div class="bk-seg">${PROC4.map(o => `<button type="button" class="${fam === o[0] ? 'on' : ''}" aria-pressed="${fam === o[0]}" data-act="beanProc" data-id="${b.id}" data-v="${o[0]}">${o[1]}</button>`).join('')}</div>
+      ${guess ? `<p class="bk-note">Not on the bag, so the tasting notes decide: ${esc(roastWhy(b.flavourNotes))}. That lands on ${guess.replace('medium-light', 'light-medium').replace('medium-dark', 'medium-dark')}. Tap a tab if you know better.</p>` : !rv ? '<p class="bk-note">No roast level or tasting notes on the bag. Pick one so the recipe fits.</p>' : ''}
+    </div>
+    <div class="bk-card">
+      <div class="bk-grid">${field('Origin', b.origin, false, 'beanOrigin')}${field('Roasted', b.roastDate ? b.roastDate + (d != null ? ` · ${d} d` : '') : '')}${field('Tasting notes', b.flavourNotes, true)}${field(more[0], more[1], true)}</div>
+      ${st ? (r ? `<div class="bk-code"><span class="cap">Recipe for ${esc(setupLabel(st))}</span><b id="bk-code">${r.dose ?? '–'}/${r.water ?? '–'} · G${esc(r.grind ?? '–')} · ${r.temp ?? '–'}° · ${esc(r.targetTime ?? '3:00')}</b></div>` : `<div class="bk-code"><span class="cap">No recipe for this setup yet</span></div>`) : `<div class="bk-code"><span class="cap">Add a setup in Gear first</span></div>`}
+    </div>
+    ${beanEdit === 'origin' ? `<form class="bk-edit" id="origin-form">
+      <input id="o-in" value="${esc(b.origin || '')}" placeholder="Country, region" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="Origin">
+      <div class="bk-chips">${POPULAR_ORIGINS.map(c => `<button type="button" class="${b.origin === c ? 'on' : ''}" data-act="originPick" data-v="${c}">${c}</button>`).join('')}</div>
+      <p class="bk-note">Washed coffees from East Africa get a degree hotter. The roaster’s site usually lists the origin.</p>
+      <div class="btn-row"><button class="btn" type="submit">Save origin</button>${b.origin ? `<button class="btn" type="button" data-act="originClear" data-id="${b.id}">Clear</button>` : ''}</div>
+    </form>` : ''}
+    <div id="recipe">${r ? `<p class="bk-why">${esc([r.pours, r.why].filter(Boolean).join(' '))}<em>Dashed means guessed. Change roast, process or origin and the recipe follows.</em></p>` : ''}</div>
+    ${st ? `<div class="btn-row">${r ? `<button class="btn go" data-act="brewBean" data-id="${b.id}">Brew ${esc(beanLabel(b))}</button>` : ''}${AI || !r ? `<button class="btn ${r ? '' : 'go'}" data-act="beanRecipe" data-id="${b.id}">${r ? 'New suggestion' : 'Suggest a recipe'}</button>` : ''}</div>` : ''}
     ${b.notes ? `<p class="foot">${esc(b.notes)}</p>` : ''}
-    <div class="sec-h"><span>Recipe for ${esc(setupLabel(st))}</span></div>
-    <div id="recipe">${st ? (r ? `<div class="grp rgrid">
-        <div><small>Coffee</small><span>${r.dose ?? '–'}<i>g</i></span></div><div><small>Water</small><span>${r.water ?? '–'}<i>g</i></span></div><div><small>Ratio</small><span>${ratio(r.dose, r.water)}</span></div>
-        <div><small>Grind</small><span>${esc(r.grind ?? '–')}</span></div><div><small>Temp</small><span>${r.temp ?? '–'}<i>°C</i></span></div><div><small>Target</small><span>${esc(r.targetTime ?? '–')}</span></div></div>
-        ${r.pours || r.why ? `<p class="foot">${esc([r.pours, r.why].filter(Boolean).join(' '))}</p>` : ''}`
-      : '<div class="grp tip"><span class="note">No recipe for this setup yet.</span></div>') : '<div class="grp tip"><span class="note">Add a setup in Gear first.</span></div>'}</div>
-    ${st ? `<div class="btn-row">${r ? `<button class="btn go" data-act="brewBean" data-id="${b.id}">Brew with this</button>` : ''}<button class="btn ${r ? '' : 'go'}" data-act="beanRecipe" data-id="${b.id}">${r ? 'New suggestion' : 'Suggest a recipe'}</button></div>` : ''}
     ${best ? `<div class="sec-h"><span>Best cup so far</span></div><div class="grp">${rowBrew(best)}</div>` : ''}
     <div class="sec-h"><span>Brews</span><span>${brews.length}</span></div>
     <div class="grp">${brews.length ? brews.slice(0, 10).map(x => rowBrew(x, false)).join('') : '<div class="empty">No brews with these beans yet.</div>'}</div>
     <div class="sec-h"><span></span></div>
-    <div class="grp"><button class="cell" data-act="editBean" data-id="${b.id}"><span class="c-title">Edit beans</span></button><button class="cell" data-act="delBean" data-id="${b.id}"><span class="c-title" style="color:var(--red)">Delete beans</span></button></div>`);
+    <div class="grp"><button class="cell" data-act="editBean" data-id="${b.id}"><span class="c-title">Edit beans</span></button><button class="cell" data-act="delBean" data-id="${b.id}"><span class="c-title" style="color:var(--red)">Delete beans</span></button></div>`;
+}
+function wireBeanDetail(id){
+  const f = $('#origin-form'); if(!f) return;
+  f.onsubmit = e => { e.preventDefault(); document.activeElement?.blur(); beanEdit = null; changeBean(id, { origin: $('#o-in').value.trim() }); };
+  if(!$('#o-in').value) $('#o-in').focus({ preventScroll: true });
+}
+function openBeanDetail(id){
+  const b = beanById(id); if(!b) return closeSheet();
+  beanEdit = null;
+  const st = curSetup();
+  /* without AI the recipe is rule-based: make sure there is one */
+  if(st && !b.recipes?.[st.id] && !AI){ const r = starterRecipe(b, st); if(r){ save({ ...b, recipes: { ...(b.recipes || {}), [st.id]: { ...r, at: Date.now() } } }); return openBeanDetail(id); } }
+  openSheet('Beans', beanDetailHTML(b));
+  wireBeanDetail(id);
+}
+function refreshBeanDetail(id){
+  const body = $('#sheet-body'), b = beanById(id); if(!b || !body) return;
+  const top = body.scrollTop, before = $('#bk-code')?.textContent;
+  body.innerHTML = beanDetailHTML(b); body.scrollTop = top;
+  const c = $('#bk-code'); if(c && before != null && c.textContent !== before) c.classList.add('bk-b');
+  wireBeanDetail(id);
+}
+/* a corrected label fact: save it and redo the rule-based recipe for the current setup */
+async function changeBean(id, patch){
+  const old = beanById(id); if(!old) return;
+  const b = { ...old, ...patch }, st = curSetup();
+  if(st){ const r = starterRecipe(b, st); if(r) b.recipes = { ...(b.recipes || {}), [st.id]: { ...r, at: Date.now() } }; }
+  await save(b); refreshBeanDetail(id);
 }
 async function beanRecipe(id){
   const b = beanById(id), st = curSetup(); if(!b || !st) return;
@@ -1680,9 +1795,6 @@ const PROCESSES = [['carbonic maceration','Carbonic maceration'],['anaerobic nat
 const VARIETALS = ['Gesha','Geisha','Bourbon','Pink Bourbon','Red Bourbon','Yellow Bourbon','Caturra','Catuai','Catuaí','Typica','SL28','SL34','SL-28','SL-34','Pacamara','Heirloom','74110','74112','74158','Castillo','Sidra','Wush Wush','Maragogype','Ruiru 11','Batian','Mundo Novo','Villa Sarchi','Laurina','Java','Landrace','Catimor','Parainema','Marsellesa'];
 /* roasters whose name sits big on the bag, so it isn't taken for the coffee's name */
 const ROASTERS = ['Stooker','Stean’s Beans','FIL','Friedhats','White Label Coffee','Bocca','Manhattan Coffee Roasters','Lot Sixty One','Uncommon','Rum Baba','Coffee Collective','La Cabra','Tim Wendelboe','Onyx','Square Mile','Morgon','Prolog','Five Elephant','The Barn','Bonanza','Gardelli','Hard Beans','Man versus Machine','DAK','Single O','Colonna','Standout','Kaffa','Coffee Brewers','Keen Coffee','Espressofabriek','Headfirst','Giraffe'];
-/* tasting-note words: fruit/floral/tea point to lighter roasts, sweet/nut/chocolate to medium */
-const FRUIT = ['berry','berries','strawberry','blueberry','raspberry','blackberry','cherry','peach','apricot','nectarine','plum','apple','pear','grape','lemon','lime','orange','mandarin','tangerine','grapefruit','bergamot','citrus','lychee','mango','passion fruit','pineapple','papaya','melon','kiwi','rhubarb','cranberry','currant','blackcurrant','jasmine','rose','floral','hibiscus','elderflower','lavender','tea','black tea','earl grey','verbena','lemongrass','tropical','stone fruit','red fruit','wine','winey','juicy','tamarind','guava','pomegranate','raisin','date','fig','jam'];
-const SWEET = ['chocolate','cocoa','cacao','caramel','toffee','butterscotch','fudge','almond','hazelnut','walnut','pecan','nut','nutty','nuts','peanut','chestnut','maple','brown sugar','molasses','praline','marzipan','vanilla','cinnamon','speculaas','biscuit','cookie','brownie','malt','syrup','tobacco','smoky','spice','spices','licorice','sugar cane','panela','dulce de leche','nougat'];
 const MONTHS = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,sept:9,oct:10,nov:11,dec:12,mrt:3,mei:5,okt:10};
 function findDate(t){
   const today = new Date(), iso = (y,m,d) => { if(y < 100) y += 2000; const dt = new Date(Date.UTC(y, m-1, d)); if(isNaN(dt) || m < 1 || m > 12 || d < 1 || d > 31) return null; if(dt > today || today - dt > 400*864e5) return null; return dt.toISOString().slice(0,10); };
@@ -1700,16 +1812,52 @@ function findDate(t){
 const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function hasWord(t, w){ return new RegExp('(^|[^a-z])' + reEsc(w.toLowerCase()) + '([^a-z]|$)', 'i').test(t); }
 function wordAt(t, w){ const m = new RegExp('(^|[^a-z])' + reEsc(w.toLowerCase()) + '([^a-z]|$)', 'i').exec(t); return m ? m.index : -1; }
-function noteProfile(s){
-  const low = ' ' + String(s || '').toLowerCase() + ' ';
-  const hits = list => list.filter(w => hasWord(low, w)).length;
-  return { fruit: hits(FRUIT), sweet: hits(SWEET) };
+/* tasting-note words → where they usually sit on the roast scale: 0 light … 4 dark.
+   Built from the SCA/WCR flavour wheel plus the words specialty roasters print on bags. Phrases win over single words. */
+const NOTE_ROAST = {
+  /* floral */ 'floral':0,'florals':0,'flowers':0,'blossom':0,'orange blossom':0,'coffee blossom':0,'jasmine':0,'rose':0,'rosehip':0.2,'hibiscus':0,'elderflower':0,'lavender':0,'violet':0,'chamomile':0,'honeysuckle':0,'lilac':0,'magnolia':0,'geranium':0,'osmanthus':0,'acacia':0.3,
+  /* tea */ 'tea':0.3,'tea-like':0.2,'black tea':0.5,'green tea':0.2,'white tea':0.1,'earl grey':0.2,'oolong':0.4,'jasmine tea':0,'rooibos':0.6,'chai':1.6,'darjeeling':0.3,'herbal':0.6,'mint':0.5,'spearmint':0.4,'basil':0.4,'thyme':0.6,'sage':0.6,
+  /* citrus */ 'citrus':0,'citric':0,'lemon':0,'lime':0,'key lime':0,'grapefruit':0,'pink grapefruit':0,'orange':0.4,'blood orange':0.3,'mandarin':0.2,'tangerine':0.2,'clementine':0.2,'satsuma':0.2,'kumquat':0.1,'yuzu':0,'bergamot':0,'lemongrass':0,'verbena':0,'lemon verbena':0,'citrus zest':0,'zest':0,'orange peel':0.6,'candied orange':0.9,'marmalade':1,
+  /* berries */ 'berry':0.2,'berries':0.2,'red berries':0.2,'forest fruit':0.4,'strawberry':0,'wild strawberry':0,'raspberry':0,'blueberry':0.3,'blackberry':0.5,'mulberry':0.5,'cranberry':0.1,'redcurrant':0,'red currant':0,'currant':0.3,'blackcurrant':0.5,'black currant':0.5,'cassis':0.5,'gooseberry':0,'boysenberry':0.4,'elderberry':0.4,'goji':0.3,
+  /* stone fruit */ 'stone fruit':0.3,'peach':0.1,'white peach':0,'yellow peach':0.2,'apricot':0.2,'nectarine':0.1,'plum':0.9,'red plum':0.8,'cherry':0.6,'black cherry':0.9,'sour cherry':0.4,'morello':0.5,
+  /* tropical */ 'tropical':0.3,'tropical fruit':0.3,'mango':0.4,'pineapple':0.2,'passion fruit':0,'passionfruit':0,'papaya':0.4,'guava':0.2,'lychee':0,'longan':0.2,'banana':1,'coconut':1.4,'kiwi':0.1,'dragon fruit':0.2,'star fruit':0.1,'jackfruit':0.5,'soursop':0.3,
+  /* other fruit */ 'fruit':0.5,'fruity':0.5,'red fruit':0.3,'red fruits':0.3,'dark fruit':1.1,'apple':0.6,'green apple':0.1,'red apple':0.7,'baked apple':1.3,'pear':0.5,'quince':0.6,'grape':0.4,'white grape':0.2,'red grape':0.5,'concord grape':0.6,'melon':0.2,'honeydew':0.2,'cantaloupe':0.3,'watermelon':0.1,'rhubarb':0.1,'pomegranate':0.2,'tamarind':0.9,'persimmon':0.7,'fig':1.4,'date':1.8,'dates':1.8,'raisin':1.5,'sultana':1.4,'prune':2,'dried fruit':1.4,'dried cherry':1.1,'dried apricot':1,
+  /* fermented, winey */ 'wine':0.8,'winey':0.8,'red wine':1.1,'white wine':0.3,'rosé':0.3,'champagne':0.1,'cider':0.4,'kombucha':0.3,'boozy':1.2,'rum':2.1,'whisky':2.5,'whiskey':2.5,'brandy':2,'liqueur':1.6,'port':2,'sherry':1.8,'fermented':0.8,'yoghurt':0.6,'yogurt':0.6,
+  /* acidity and texture words */ 'bright':0.1,'vibrant':0.1,'juicy':0.3,'crisp':0.2,'tart':0.1,'tangy':0.2,'zesty':0,'sparkling':0,'lively':0.2,'delicate':0.2,'clean':0.6,'silky':1,'velvety':1.6,'round':1.6,'smooth':1.8,'creamy':1.8,'syrupy':1.5,'heavy':3,'full-bodied':2.8,'full body':2.8,'bold':3.2,'rich':2.4,'balanced':1.8,
+  /* sweet */ 'sweet':1.2,'honey':1.2,'honeyed':1.2,'jam':0.8,'jammy':0.8,'compote':1,'candy':1,'candied':1,'cotton candy':1,'bubblegum':0.8,'sugar cane':1.2,'cane sugar':1.2,'sugarcane':1.2,'panela':1.4,'rapadura':1.6,'brown sugar':1.6,'demerara':1.8,'muscovado':2,'caramel':1.8,'salted caramel':2,'burnt sugar':2.6,'caramelized':2,'toffee':2,'butterscotch':2,'fudge':2.3,'dulce de leche':2.2,'condensed milk':2.2,'molasses':2.6,'treacle':2.7,'maple':2,'maple syrup':2,'golden syrup':1.8,'syrup':1.6,'agave':1.2,'vanilla':1.5,'marshmallow':1.5,'nougat':2,'marzipan':1.8,'praline':2.2,'meringue':1.4,'custard':1.8,'cream':1.8,'butter':1.8,'buttery':1.8,'cola':1.6,'root beer':2.2,
+  /* nutty, cocoa */ 'nut':2.1,'nuts':2.1,'nutty':2.2,'almond':2,'roasted almond':2.2,'hazelnut':2,'macadamia':1.8,'pecan':2.2,'walnut':2.5,'cashew':2,'pistachio':1.6,'peanut':2.5,'peanut butter':2.6,'chestnut':2.2,'brazil nut':2.4,'cocoa':2.2,'cacao':2.2,'cocoa nib':2.6,'cacao nib':2.6,'cocoa nibs':2.6,'chocolate':2.3,'milk chocolate':2,'white chocolate':1.6,'dark chocolate':3,'bittersweet':3.2,'bitter chocolate':3.3,'chocolate fudge':2.5,'brownie':2.7,'mocha':2.8,'hazelnut praline':2.2,
+  /* cereal, baked */ 'malt':2.5,'malty':2.5,'grain':2.4,'cereal':2.2,'oat':2,'biscuit':2,'cookie':2,'shortbread':1.8,'graham cracker':2,'cracker':2.2,'bread':2.3,'toast':2.8,'toasted':2.8,'brioche':1.8,'croissant':1.8,'pastry':1.6,'pie crust':2,'speculaas':2,'speculoos':2,'stroopwafel':2,'gingerbread':2.2,'granola':2.2,
+  /* spices */ 'spice':2.4,'spices':2.4,'spicy':2.6,'baking spice':2.2,'cinnamon':2,'nutmeg':2.3,'clove':2.8,'cardamom':1.6,'ginger':1.5,'allspice':2.4,'anise':2.5,'star anise':2.5,'licorice':3,'liquorice':3,'black pepper':3,'pepper':2.9,'pink peppercorn':1.4,
+  /* roasty, earthy, dark */ 'roasted':2.8,'roasty':3.5,'smoky':3.6,'smoke':3.6,'tobacco':3.3,'pipe tobacco':3.3,'cedar':3,'woody':3,'wood':3,'oak':2.8,'earthy':3.2,'leather':3.4,'cigar':3.6,'charred':3.8,'burnt':4,'ash':4,'ashy':4,'carbon':4,'tar':4,'dark roast':4,'espresso':3,'bitter':3.2,'savory':2.8,'umami':2.5,'mushroom':3,'soy':3
+};
+const NOTE_KEYS = Object.keys(NOTE_ROAST).sort((a, b) => b.length - a.length);
+/* every flavour word in a note line, longest phrase first, each piece of text used once */
+function noteWords(s){
+  let low = ' ' + String(s || '').toLowerCase().replace(/[’']/g, '').replace(/[^a-zà-ÿ -]/g, ' ') + ' ';
+  const hits = [];
+  for(const k of NOTE_KEYS){
+    const re = new RegExp('(^|[^a-z])' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(s|es)?(?=[^a-z]|$)', 'g');
+    low = low.replace(re, (m, pre) => { hits.push(k); return pre + ' '.repeat(m.length - pre.length); });
+  }
+  return hits;
 }
-/* no roast level printed: fruity notes usually mean a light roast, chocolate and nuts a medium one */
+const FRUIT = NOTE_KEYS.filter(k => NOTE_ROAST[k] < 1.2), SWEET = NOTE_KEYS.filter(k => NOTE_ROAST[k] >= 1.2);
+function noteProfile(s){
+  const h = noteWords(s);
+  return { fruit: h.filter(k => NOTE_ROAST[k] < 1.2).length, sweet: h.filter(k => NOTE_ROAST[k] >= 1.2).length, words: h };
+}
+/* average spot of the notes on the roast scale, or null when no flavour word is found */
+function roastScore(s){ const h = noteWords(s); return h.length ? h.reduce((a, k) => a + NOTE_ROAST[k], 0) / h.length : null; }
+/* no roast level printed: the notes decide (fruit, flowers, tea → light; caramel, nuts, cocoa → medium; smoke, tobacco → dark) */
 function roastFromNotes(s){
-  const p = noteProfile(s);
-  if(!p.fruit && !p.sweet) return '';
-  return p.fruit > p.sweet ? 'light' : p.sweet > p.fruit ? 'medium' : 'medium-light';
+  const v = roastScore(s); if(v == null) return '';
+  return v < 0.8 ? 'light' : v < 1.6 ? 'medium-light' : v < 2.4 ? 'medium' : v < 3.2 ? 'medium-dark' : 'dark';
+}
+/* "peach and strawberry" — the words that pulled the guess, for the beans page */
+function roastWhy(s){
+  const h = [...new Set(noteWords(s))], lite = h.filter(k => NOTE_ROAST[k] < 1.2), dark = h.filter(k => NOTE_ROAST[k] >= 1.2);
+  const list = a => a.length > 1 ? a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1] : a[0];
+  return [lite.length ? `${list(lite.slice(0, 3))} point lighter` : '', dark.length ? `${list(dark.slice(0, 3))} point darker` : ''].filter(Boolean).join('; ');
 }
 const ocrClean = s => String(s || '').replace(/[’‘`]/g, '\'').replace(/[|_~=—–“”"»«{}\[\]©®§]+/g, ' ').replace(/\s+/g, ' ').trim();
 const HEADS = { origin:/^(origin|origins|country|herkomst|regio|region)$/, process:/^(process|processing|proces|method)$/, varietal:/^(variet(y|ies|al|als)|cultivars?|vari[eë]teit)$/, notes:/^(tasting notes?|notes|flavou?r notes?|flavou?rs?|in the cup|smaak|smaaknotities|cup notes)$/, producer:/^(producers?|farm|farmers?|washing station|station|finca)$/, altitude:/^(altitude|elevation|hoogte)$/ };
@@ -1752,7 +1900,7 @@ function parseLabel(text, lines){
   let notes = F.notes || '';
   if(!notes){
     let best = null;
-    textLines.forEach((l, i) => { const p = noteProfile(l), n = p.fruit + p.sweet; if(n >= 2 && /[a-z]/i.test(l) && !/\d{3}/.test(l) && (!best || n > best.n)) best = { i, n, l }; });
+    textLines.forEach((l, i) => { const p = noteProfile(l), n = p.fruit + p.sweet; if(n >= 2 && /[a-z]/i.test(l) && !/\d/.test(l) && (!best || n > best.n)) best = { i, n, l }; });
     if(best){ notes = best.l; const nx = textLines[best.i + 1]; if(nx && /^[a-z][a-z ]{2,20}$/.test(nx) && nx.split(' ').length <= 2) notes += ' ' + nx; }
   }
   notes = notes.replace(/^[^\p{L}]+|[^\p{L}.)]+$/gu, '').replace(/^([a-z]{1,5}\s+)+(?=\p{Lu})/u, '').replace(/^(tasting notes?|notes|flavou?rs?|smaak|in the cup|we taste|taste)\s*[:\-]?\s*/i, '');
@@ -1797,19 +1945,20 @@ function parseLabel(text, lines){
   if(name && name === name.toUpperCase()) name = name.toLowerCase().replace(/(^|\s)\p{L}/gu, c => c.toUpperCase());
   const rb = roasterName ? '' : (text.match(/roasted by\s+([^\n]{2,40})/i) || text.match(/([A-Z][\w&' ]{2,30}(coffee roasters|roasters|roastery|coffee co))/) || [])[1] || '';
   const firstCountry = parts[0] ? (parts[0].region || parts[0].country) : '';
-  return { name: name || firstCountry, roaster: roasterName || clean(rb), origin, process: procs.join(' & '), roastLevel,
-    roastDate: findDate(text), varietal: vars.join(', '), altitude: alt ? alt.replace(/\s/g, '') + ' m' : '', flavourNotes: fixNotes(clean(notes)) };
+  const fNotes = fixNotes(clean(notes)), roastGuess = roastLevel ? '' : roastFromNotes(fNotes);
+  return { name: name || firstCountry, roaster: roasterName || clean(rb), origin, process: procs.join(' & '), roastLevel: roastLevel || roastGuess, roastFrom: roastGuess ? 'notes' : '',
+    roastDate: findDate(text), varietal: vars.join(', '), altitude: alt ? alt.replace(/\s/g, '') + ' m' : '', flavourNotes: fNotes };
 }
 function starterRecipe(bean, st){
   if(!st) return null;
   const g = grinderOf(st), z = gZone(g), n = g ? (g.nudge || 1) : 1;
-  let roast = bean.roastLevel || '', guessed = '';
+  let roast = bean.roastLevel || '', guessed = bean.roastFrom === 'notes' && roast ? roast : '';
   if(!roast && (roast = roastFromNotes(bean.flavourNotes))) guessed = roast;
   const proc = (bean.process || '').toLowerCase(), origin = (bean.origin || '').toLowerCase(), prof = noteProfile(bean.flavourNotes);
   const alt = num(String(bean.altitude || '').replace(/[.,](?=\d{3})/g, '').match(/\d{3,4}/)?.[0]);
   const days = daysOff(bean.roastDate);
   let step = 0, temp = 93, ratio = 16.5, bloomT = 45; const notes = [];
-  if(guessed) notes.push(`no roast level on the bag, but the ${guessed === 'light' ? 'fruity' : guessed === 'medium' ? 'chocolate and nut' : 'mixed'} notes point to ${guessed}`);
+  if(guessed) notes.push(`no roast level on the bag, but the tasting notes point to ${guessed.replace('medium-light', 'light-medium')}`);
   if(/medium-light/.test(roast)){ temp = 94; step -= 1; notes.push('light-medium roast: hot and a touch finer'); }
   else if(/light/.test(roast)){ temp = 95; ratio = 16; step -= 1; notes.push('light roast: hotter and a touch finer'); }
   else if(/medium-dark/.test(roast)){ temp = 91; step += 1; }
@@ -2081,6 +2230,11 @@ const ACT = {
   editBean(id){ const b = beanById(id); if(b) openBeanForm(b, id); },
   delBean(id, btn){ armDelete(btn, () => { remove('bean', id); closeSheet(); }); },
   beanRecipe(id){ beanRecipe(id); },
+  beanRoast(id, btn){ changeBean(id, { roastLevel: btn.dataset.v, roastBy: 'you', roastFrom: '' }); },
+  beanProc(id, btn){ changeBean(id, { process: PROC4.find(p => p[0] === btn.dataset.v)[1], procBy: 'you' }); },
+  beanOrigin(id){ beanEdit = beanEdit === 'origin' ? null : 'origin'; refreshBeanDetail(id); },
+  originPick(id, btn){ const i = $('#o-in'); if(!i) return; i.value = btn.dataset.v; btn.parentNode.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === btn)); },
+  originClear(id){ beanEdit = null; changeBean(id, { origin: '' }); },
   brewBean(id){ const b = beanById(id), st = curSetup(), r = st && b?.recipes?.[st.id]; if(!r) return;
     setPlan({ setupId: st.id, beanId: id, dose:r.dose, water:r.water, grind:r.grind, temp:r.temp, bloomWater:r.bloomWater, bloomTime:r.bloomTime, targetTime:r.targetTime || '3:00' }, 'Suggested recipe for ' + beanLabel(b)); goBrew(); },
   addSetup(){ openSetupForm({}); },
