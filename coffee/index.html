@@ -733,7 +733,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.15 · 17 Nov 2026';
+const APP_VERSION = '1.16 · 17 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -1188,7 +1188,7 @@ function grindRow(val, setup){
     const span = z.hi - z.lo, cur = gIdx(g, val) ?? z.start;
     const lo = Math.min(cur, Math.max(0, z.lo - Math.ceil(span * 0.5))), hi = Math.max(cur, Math.min(gCount(g) - 1, z.hi + Math.ceil(span * 0.3)));
     const pct = i => (i - lo) / Math.max(1, hi - lo) * 100;
-    return `<div class="gwrap dkrow" id="grind-wrap"><div class="dkrow">${dialHTML('g-range', 'Grind · ' + esc(g.model), `min="${lo}" max="${hi}" step="1" value="${cur}" data-gid="${g.id}"`, `<div class="dk-zone" aria-hidden="true"><span style="left:${pct(z.vlo)}%;width:${pct(z.vhi) - pct(z.vlo)}%"></span></div>`)}
+    return `<div class="gwrap dkrow" id="grind-wrap"><div class="dkrow">${dialHTML('g-range', 'Grind · ' + esc(g.model), `min="${lo}" max="${hi}" step="1" value="${cur}" data-gid="${g.id}"`)}
       </div></div>`;
   }
   return `<div class="gwrap" id="grind-wrap"><div class="frow"><label for="g-text">Grind${g ? ' · ' + esc(g.model) : ''}</label><input id="g-text" value="${esc(val ?? '')}" placeholder="${g ? 'e.g. ' + esc(g.po[0]) : 'Setting'}"></div>${g ? `<div class="ghint" style="padding:0 16px 10px">${esc(gHint(g))}</div>` : ''}</div>`;
