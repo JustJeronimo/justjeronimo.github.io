@@ -684,7 +684,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.10 · 17 Nov 2026';
+const APP_VERSION = '1.11 · 17 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -934,39 +934,69 @@ function toastErr(msg){ const d = document.createElement('div'); d.className = '
 
 /* ---------- form widgets ---------- */
 function frow(id, label, val, attrs = ''){ return `<div class="frow"><label for="${id}">${label}</label><input id="${id}" value="${esc(val ?? '')}" ${attrs}></div>`; }
-/* ---------- sounds: tiny Web Audio synths, no files ----------
-   tick = slider step / clock second, tap = buttons, chime = next pour, start/stop. Off in Settings. */
+/* ---------- sounds: small physical objects, not beeps ----------
+   Each sound is pre-rendered once with modal synthesis: a sub-millisecond noise "strike" exciting a few
+   damped resonances (the material) plus a short low sine (the body/mass). Playback adds ±3 % pitch
+   jitter so repeats never machine-gun, and slider detents get quieter and lighter the faster you drag,
+   like a real ratchet. Off in Settings; the iPhone mute switch wins. */
 const SFX = (() => {
-  let ctx = null, on = true, last = 0;
+  let ctx = null, out = null, buf = {}, on = true, lastTick = 0, tockFlip = false;
   try { on = localStorage.getItem('drawdown-sound') !== 'off'; } catch(e){}
-  const unlock = () => { if(!on) return; try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if(ctx.state === 'suspended') ctx.resume(); } catch(e){ ctx = null; } };
+  function render(spec){
+    const sr = ctx.sampleRate, len = Math.ceil(sr * spec.len), b = ctx.createBuffer(1, len, sr), d = b.getChannelData(0);
+    const nz = Math.ceil(sr * (spec.noise || 0) / 1000); let hp = 0, prev = 0;
+    for(let i = 0; i < len; i++){
+      const t = i / sr, a = spec.attack ? Math.min(1, t / spec.attack) : 1; let v = 0;
+      for(const [f, tau, amp] of spec.modes) v += amp * Math.sin(2 * Math.PI * f * t) * Math.exp(-t / tau);
+      if(spec.body) v += spec.body[2] * Math.sin(2 * Math.PI * spec.body[0] * t * (1 - t * 2)) * Math.exp(-t / spec.body[1]);
+      if(i < nz){ const n = Math.random() * 2 - 1; hp = .6 * (hp + n - prev); prev = n; v += hp * (spec.noiseAmp || .5) * (1 - i / nz); }
+      d[i] = v * a;
+    }
+    let pk = 0; for(let i = 0; i < len; i++) pk = Math.max(pk, Math.abs(d[i]));
+    const k = (spec.peak || .9) / (pk || 1); for(let i = 0; i < len; i++) d[i] *= k;
+    const f = Math.min(len, Math.ceil(sr * .002)); for(let i = 0; i < f; i++) d[len - 1 - i] *= i / f;
+    return b;
+  }
+  const SPECS = {
+    detent: { len:.045, noise:.6, noiseAmp:.7, modes:[[3150,.0035,.7],[5300,.002,.4],[1480,.006,.3]], body:[190,.009,.35] },
+    end:    { len:.09,  noise:.9, noiseAmp:.5, modes:[[880,.012,.5],[2250,.006,.35],[4100,.003,.2]], body:[92,.026,.8] },
+    tap:    { len:.06,  noise:1.2, noiseAmp:.45, modes:[[2350,.005,.45],[3950,.003,.3],[1150,.008,.25]], body:[160,.016,.7] },
+    tick:   { len:.02,  noise:.3, noiseAmp:.5, modes:[[6300,.0014,.6],[8900,.0009,.4]] },
+    tock:   { len:.02,  noise:.3, noiseAmp:.5, modes:[[5200,.0016,.6],[7600,.001,.4]] },
+    bell:   { len:1.6,  attack:.003, noise:.4, noiseAmp:.15, modes:[[880,.75,1],[882.6,.7,.6],[2428,.32,.42],[4752,.16,.22],[7858,.07,.1]], peak:.8 },
+    bellLo: { len:1.1,  attack:.003, noise:.4, noiseAmp:.15, modes:[[587,.45,1],[589,.42,.5],[1620,.2,.35],[3170,.1,.15]], peak:.8 }
+  };
+  function unlock(){
+    if(!on) return;
+    try {
+      if(!ctx){ ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 3; comp.attack.value = .002; comp.release.value = .08;
+        const warm = ctx.createBiquadFilter(); warm.type = 'highshelf'; warm.frequency.value = 7000; warm.gain.value = -4;
+        out = ctx.createGain(); out.gain.value = .9; out.connect(warm).connect(comp).connect(ctx.destination);
+        for(const k in SPECS) buf[k] = render(SPECS[k]); }
+      if(ctx.state === 'suspended') ctx.resume();
+    } catch(e){ ctx = null; }
+  }
   addEventListener('pointerdown', unlock, { capture:true, passive:true });
-  const tone = (freq, dur, gain = .05, type = 'sine', to = null, delay = 0) => {
-    if(!on || !ctx || ctx.state !== 'running') return;
-    const t = ctx.currentTime + delay, o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = type; o.frequency.setValueAtTime(freq, t); if(to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + .003); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
-    o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + dur + .02);
-  };
-  const noise = (dur, gain, freq) => {
-    if(!on || !ctx || ctx.state !== 'running') return;
-    const t = ctx.currentTime, n = Math.ceil(ctx.sampleRate * dur), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
-    for(let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 4);
-    const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
-    f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 1.4; g.gain.value = gain;
-    src.buffer = buf; src.connect(f).connect(g).connect(ctx.destination); src.start(t);
-  };
+  function play(name, gain = .3, rate = 1, delay = 0, jitter = .03){
+    if(!on || !ctx || ctx.state !== 'running' || !buf[name]) return;
+    const s = ctx.createBufferSource(), g = ctx.createGain();
+    s.buffer = buf[name]; s.playbackRate.value = rate * (1 + (Math.random() * 2 - 1) * jitter); g.gain.value = gain;
+    s.connect(g).connect(out); s.start(ctx.currentTime + delay);
+  }
   return {
     get on(){ return on; },
-    set(v){ on = v; try { localStorage.setItem('drawdown-sound', v ? 'on' : 'off'); } catch(e){} if(v){ unlock(); this.tap(); } },
-    // slider detent: a short click whose pitch follows the value (0..1); throttled so fast drags don't buzz
-    tick(f = .5){ const n = performance.now(); if(n - last < 28) return; last = n; noise(.012, .5, 1800 + f * 2600); tone(900 + f * 900, .025, .018, 'triangle'); },
-    tap(){ noise(.018, .35, 2400); },
-    second(){ noise(.01, .18, 3200); },
-    chime(){ tone(784, .5, .045, 'sine'); tone(1175, .6, .03, 'sine', null, .07); },
-    start(){ tone(520, .14, .05, 'sine', 880); },
-    stop(){ tone(700, .16, .05, 'sine', 420); },
-    snap(){ tone(1200, .05, .03, 'triangle', 900); }
+    set(v){ on = v; try { localStorage.setItem('drawdown-sound', v ? 'on' : 'off'); } catch(e){} if(v){ unlock(); setTimeout(() => this.tap(), 30); } },
+    // slider detent: f = position 0..1 nudges the pitch; fast drags get softer, lighter clicks
+    tick(f = .5){ const n = performance.now(), dt = n - lastTick; if(dt < 16) return; lastTick = n;
+      const speed = Math.max(.35, Math.min(1, dt / 70)); play('detent', .16 + .2 * speed, .94 + f * .14 + (1 - speed) * .08); },
+    end(){ play('end', .42, 1); },
+    snap(){ play('detent', .32, 1.02); play('detent', .18, .9, .032); },
+    tap(){ play('tap', .32, 1); },
+    second(){ tockFlip = !tockFlip; play(tockFlip ? 'tick' : 'tock', .07, 1, 0, .01); },
+    chime(){ play('bell', .16, 1, 0, 0); },
+    start(){ play('tap', .34, .9); play('bell', .11, 1.335, .04, 0); },
+    stop(){ play('end', .36, 1.05); play('bellLo', .1, 1, .05, 0); }
   };
 })();
 
@@ -1000,7 +1030,7 @@ function wireDial(dk, r){
   };
   const toPct = v => (v - min) / (max - min) * 100;
   const round = v => { v = Math.round((v - min) / step) * step + min; return Math.max(min, Math.min(max, +v.toFixed(4))); };
-  const set = v => { const c = round(v); if(+r.value !== c){ r.value = c; r.dispatchEvent(new Event('input', { bubbles:true })); SFX.tick((c - min) / (max - min)); } };
+  const set = v => { const c = round(v); if(+r.value !== c){ r.value = c; r.dispatchEvent(new Event('input', { bubbles:true })); (c === min || c === max) ? SFX.end() : SFX.tick((c - min) / (max - min)); } };
   const stopSpring = () => { cancelAnimationFrame(raf); raf = 0; };
   const springTo = target => { // stiffness 300, damping 25, mass .8 (DialKit's click spring)
     stopSpring(); if(reduceMotion()){ pct = target; return paint(); }
