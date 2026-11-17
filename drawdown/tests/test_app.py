@@ -101,6 +101,14 @@ with sync_playwright() as p:
     # 5. journal renders
     pg.goto(URL + '#journal'); pg.wait_for_timeout(800); pg.screenshot(path='/tmp/drawdown-journal.png')
     check('journal lists brews', pg.locator('.cell[data-act=brew]').count() >= 2)
+    # 5b. settings: version + update check
+    pg.goto(URL + '#gear'); pg.wait_for_timeout(700)
+    pg.click('[data-act=settings]'); pg.wait_for_timeout(700)
+    ver = pg.evaluate('APP_VERSION')
+    check('settings shows version', ver in pg.inner_text('#sheet-body'), ver)
+    pg.click('[data-act=checkUpdate]'); pg.wait_for_timeout(900)
+    check('update check says latest', 'latest version' in pg.inner_text('#upd'), pg.inner_text('#upd'))
+    pg.screenshot(path='/tmp/drawdown-settings.png')
     check('no page errors (web)', not errs, '; '.join(errs))
 
     # 6. AI scan inside Claude: call starts inside the tap

@@ -211,6 +211,11 @@ input[type=range]::-moz-range-thumb{width:28px;height:28px;border:0;border-radiu
 /* Allo by Josh Puckett (SIL Open Font License), variable 100–900, via the allo-font npm package */
 @font-face{font-family:Allo;src:url("https://cdn.jsdelivr.net/npm/allo-font@1.0.1/fonts/webfonts/AlloVariable.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
 .gimg{display:block;object-fit:contain;flex:none}
+.lt-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.lt-row .lt{margin-right:0}
+.iconbtn{appearance:none;background:transparent;border:0;color:var(--sec);width:44px;height:44px;margin:0 0 6px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px var(--sep);transition:color .3s var(--ease),transform .4s var(--spring-soft)}
+.iconbtn svg{width:20px;height:20px}
+.iconbtn:active{transform:scale(.97);transition-duration:.1s;color:var(--label)}
 .gprev{display:flex;justify-content:center;padding:6px 0 0;min-height:0}
 .gprev .gimg{width:132px;height:132px}
 .brew-head{position:relative;padding-right:64px}
@@ -543,7 +548,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.4 · 17 Nov 2026';
+const APP_VERSION = '1.5 · 17 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -978,7 +983,7 @@ function viewBeans(){
 }
 function viewGear(){
   const cur = curSetup();
-  return `<h1 class="lt">Gear</h1>
+  return `<div class="lt-row"><h1 class="lt">Gear</h1><button class="iconbtn" data-act="settings" aria-label="Settings and version"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg></button></div>
   ${S.setups.length ? '' : noSetupBlock()}
   ${S.setups.length ? `<div class="sec-h"><span>Setups</span></div><div class="grp">${S.setups.map(s => `<div class="cellw"><button class="cell" data-act="useSetup" data-id="${s.id}" aria-pressed="${cur?.id === s.id}">
       ${gImg(grinderOf(s), 'gimg thumb-g')}<span class="c-main"><span class="c-title">${esc(setupLabel(s))}</span><span class="c-sub">${esc(setupGear(s))}</span></span>
@@ -987,7 +992,6 @@ function viewGear(){
     <p class="foot">Tap a setup to brew with it. Grind sliders, tips and recipes follow the grinder in the setup with the check mark. Everyone who opens this app keeps their own setups and brews.</p>` : ''}
   <div class="sec-h"><span>Data</span></div>
   <div class="grp"><div class="cell"><span class="c-main"><span class="c-title">Sync</span></span><span class="c-val">${syncState === 'cloud' ? 'Your Claude account' : syncState === 'local' ? 'This device only' : 'Loading…'}</span></div></div>
-  <p class="foot">drawdown ${APP_VERSION}</p>
   <p class="foot">${syncState === 'cloud' ? 'Your brews, beans and gear are the same on your iPhone and your Mac.' : syncState === 'local' ? (window.claude ? 'Open this page signed in to Claude to sync between devices.' : 'Saved in this browser on this device. Clearing Safari’s website data removes it.') : ''}</p>`;
 }
 
@@ -1407,6 +1411,33 @@ function switchSetup(id){
   save({ ...S.prefs, setupId:id, plan: { ...p, setupId:id, grind } });
 }
 
+
+/* ---------- settings ---------- */
+function openSettings(){
+  const where = syncState === 'cloud' ? 'Your Claude account' : syncState === 'local' ? 'This device' : 'Loading…';
+  openSheet('Settings', `
+    <div class="grp" style="margin-top:12px">
+      <div class="cell"><span class="c-main"><span class="c-title">Version</span></span><span class="c-val num">${esc(APP_VERSION)}</span></div>
+      <div class="cell"><span class="c-main"><span class="c-title">Brews saved on</span></span><span class="c-val">${where}</span></div>
+      <div class="cell"><span class="c-main"><span class="c-title">Photo reading</span></span><span class="c-val">${AI ? 'AI (Claude)' : 'On your phone'}</span></div>
+    </div>
+    <div id="upd" style="margin-top:12px"><div class="btn-row"><button class="btn" data-act="checkUpdate">Check for update</button></div></div>
+    <p class="foot">drawdown · ${[[S.brews.length,'brew'],[S.beans.length,'bean'],[S.setups.length,'setup']].map(([n,w]) => n + ' ' + w + (n === 1 ? '' : 's')).join(' · ')}</p>`);
+}
+async function checkUpdate(){
+  const box = $('#upd'); if(!box) return;
+  box.innerHTML = '<div class="grp tip"><span class="note"><span class="spin"></span>Checking…</span></div>';
+  try {
+    const r = await fetch(location.pathname + '?v=' + Date.now(), { cache:'no-store' });
+    const live = ((await r.text()).match(/const APP_VERSION = '([^']+)'/) || [])[1];
+    if(!live) throw new Error('no version');
+    if(live === APP_VERSION) box.innerHTML = '<div class="grp tip"><span class="note">You’re on the latest version.</span></div>';
+    else box.innerHTML = `<div class="grp tip"><span class="note">Version ${esc(live)} is out.</span></div><div class="btn-row"><button class="btn go" data-act="reloadApp">Update now</button></div>`;
+  } catch(e){
+    box.innerHTML = '<div class="grp tip"><span class="note">Couldn’t check right now. Close and reopen the app to get the latest version.</span></div>';
+  }
+}
+
 /* ---------- actions ---------- */
 function armDelete(btn, fn){
   if(btn.dataset.armed){ fn(); return; }
@@ -1451,6 +1482,9 @@ const ACT = {
   addSetup(){ openSetupForm({}); },
   editSetup(id){ const s = setupById(id); if(s) openSetupForm(s, id); },
   useSetup(id){ switchSetup(id); },
+  settings(){ openSettings(); },
+  checkUpdate(){ checkUpdate(); },
+  reloadApp(){ location.replace(location.pathname + '?v=' + Date.now() + location.hash); },
   gtype(t){
     if(setupType === t) return; setupType = t;
     const s = $('#gtype'); s.dataset.on = t === 'electric' ? 'top' : 'all'; s.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.id === t)));
