@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="drawdown">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="assets/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<title>drawdown</title>
+<style>
+:root{
+  /* layout: native iOS feel. Large titles, inset grouped lists, a ring timer with pour bars, and one floating orange action above a blurred tab bar. Single dark theme by choice. */
+  --bg:#000000; --grp:#1C1C1E; --grp2:#2C2C2E; --grp3:#3A3A3C; --sep:rgba(84,84,88,.6);
+  --label:#FFFFFF; --sec:rgba(235,235,245,.6); --ter:rgba(235,235,245,.3);
+  --accent:#FF9F0A; --accent-dim:rgba(255,159,10,.16);
+  --water:#5B8FE0; --water-deep:#2B4A7A; --water-done:rgba(91,143,224,.3);
+  --red:#FF453A; --green:#32D74B;
+  --font:-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+  --display:-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", system-ui, sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overscroll-behavior:none}
+html{-webkit-text-size-adjust:100%}
+button,a,nav a,.pill,.btn,.cell,.picker,.seg button,.pick button,.rating button{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#sheet-body{overscroll-behavior:contain}
+body{background:var(--bg);color:var(--label);font:17px/1.35 var(--font);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;letter-spacing:-.01em}
+button,input,select,textarea{font:inherit;color:inherit;letter-spacing:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.num{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+svg{display:block}
+
+main{max-width:600px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 100px);display:flex;flex-direction:column;gap:8px}
+main.has-dock{padding-bottom:calc(env(safe-area-inset-bottom) + 170px)}
+.lt{font:700 34px/1.1 var(--display);letter-spacing:.005em;margin:28px 4px 8px;text-wrap:balance}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;padding:18px 16px 6px;font-size:13px;text-transform:uppercase;letter-spacing:.02em;color:var(--sec)}
+.foot{font-size:13px;color:var(--sec);padding:6px 16px 0;margin:0}
+.link{appearance:none;background:none;border:0;color:var(--accent);padding:4px 0;font-size:inherit;text-transform:none;letter-spacing:0}
+.link.center{align-self:center;font-size:15px;padding:16px}
+
+/* grouped lists */
+.grp{background:var(--grp);border-radius:12px;overflow:hidden}
+.cell{display:flex;align-items:center;gap:12px;min-height:44px;padding:10px 16px;position:relative;width:100%;background:none;border:0;text-align:left}
+.cell + .cell::before,.cell + .cellw::before,.cellw + .cell::before,.cellw + .cellw::before{content:"";position:absolute;top:0;left:16px;right:0;height:.5px;background:var(--sep)}
+.cellw{display:flex;align-items:center;position:relative}
+.cellw .cell{flex:1;min-width:0}
+.c-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.c-title{font-size:17px;overflow-wrap:anywhere}
+.c-sub{font-size:14px;color:var(--sec);overflow-wrap:anywhere}
+.c-val{color:var(--sec);font-size:17px;white-space:nowrap}
+.chev{width:8px;height:13px;color:var(--ter);flex:none}
+.thumb{width:44px;height:44px;border-radius:9px;object-fit:cover;flex:none;background:var(--grp2)}
+.thumb.ph{display:flex;align-items:center;justify-content:center;color:var(--accent);font:600 18px var(--display)}
+.check{width:18px;height:18px;color:var(--accent);flex:none}
+.acc{color:var(--accent)}
+.again{appearance:none;border:0;background:var(--accent-dim);color:var(--accent);font-size:14px;font-weight:600;border-radius:99px;padding:6px 12px;margin-right:12px;flex:none}
+.stars{color:var(--accent);font-size:13px;letter-spacing:1px;white-space:nowrap}
+.stars .off{color:var(--grp3)}
+.empty{color:var(--sec);text-align:center;padding:28px 20px;font-size:15px;line-height:1.45}
+
+/* brew screen */
+.brew-head{display:flex;flex-direction:column;gap:2px;margin:20px 4px 0}
+.eyebrow{font-size:13px;color:var(--sec);font-weight:500}
+.picker{position:relative;display:inline-flex;align-items:center;gap:6px;max-width:100%}
+.picker select{position:absolute;inset:0;opacity:0;width:100%;font-size:16px}
+.picker.big span{font:700 30px/1.15 var(--display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.picker.small{font-size:15px;color:var(--sec)}
+.picker.small b{color:var(--label);font-weight:500;max-width:62vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.picker svg{width:12px;height:12px;color:var(--accent);flex:none}
+.ring-wrap{position:relative;width:min(78vw,290px);aspect-ratio:1;margin:18px auto 6px}
+.ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.clock{font:200 64px/1 var(--display);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.clock small{font-size:32px;color:var(--sec)}
+.ring-sub{font-size:14px;color:var(--sec)}
+.step{text-align:center;font-size:17px;margin:4px 24px 0;min-height:70px;text-wrap:balance;display:flex;flex-direction:column;align-items:center;gap:4px}
+#step-sub{font-size:15px;color:var(--sec)}
+#step-main.in{animation:stepin .5s var(--spring-soft)}
+@keyframes stepin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.step b{color:var(--water);font-weight:600}
+.rgrid{display:grid;grid-template-columns:repeat(3,1fr)}
+.rgrid > div{padding:11px 14px;border-right:.5px solid var(--sep);border-bottom:.5px solid var(--sep)}
+.rgrid > div:nth-child(3n){border-right:0}
+.rgrid > div:nth-last-child(-n+3){border-bottom:0}
+.rgrid small{display:block;font-size:12px;color:var(--sec)}
+.rgrid span{font:500 21px/1.3 var(--display);font-variant-numeric:tabular-nums}
+.rgrid span i{font-style:normal;font-size:14px;color:var(--sec);margin-left:2px}
+.pours{padding:6px 16px 12px;display:flex;flex-direction:column;gap:10px}
+.pour-top{display:flex;justify-content:space-between;font-size:12px;color:var(--sec);margin-bottom:4px}
+.pour-top b{font-weight:500;color:var(--label)}
+.bar{height:22px;border-radius:5px;background:var(--water-deep);position:relative;overflow:hidden;transform-origin:left center;transition:opacity .5s var(--ease),transform .4s var(--spring-soft)}
+.fill{position:absolute;inset:0;background:var(--water);transform:scaleX(0);transform-origin:left center;border-radius:inherit;transition:transform .7s var(--spring-soft)}
+body.timing .fill{transition:none}
+.pour.now .bar{transform:scaleY(1.1)}
+.pour.done .bar{opacity:.42}
+.pour-top b{transition:color .4s var(--ease)}
+.pour.now .pour-top b{color:var(--water)}
+.pour.done .pour-top b{color:var(--sec)}
+.tip{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.tip strong{font-weight:600}
+.tip ul{margin:0;padding-left:18px;color:var(--sec);font-size:15px}
+.tip ul li::marker{color:var(--accent)}
+
+/* dock + tab bar */
+#dock{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 64px);z-index:7;padding:0 16px 12px;display:flex;gap:10px;max-width:600px;margin:0 auto;background:linear-gradient(transparent,var(--bg) 40%)}
+.pill{appearance:none;border:0;border-radius:99px;min-height:56px;padding:0 22px;font:600 19px var(--font);display:flex;align-items:center;justify-content:center;gap:10px;flex:1}
+.pill svg{width:20px;height:20px}
+.pill.go{background:var(--accent);color:#1A0F00}
+.pill.ghost{background:var(--grp2);color:var(--label);flex:0 0 auto}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:8;background:rgba(18,18,20,.82);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);border-top:.5px solid var(--sep);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 0 calc(env(safe-area-inset-bottom) + 4px)}
+nav a{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:500;color:#8E8E93;text-decoration:none;padding:2px 0}
+nav a svg{width:26px;height:26px}
+nav a[aria-current="page"]{color:var(--accent)}
+
+/* journal */
+.seg{position:relative;display:grid;grid-template-columns:1fr 1fr;background:var(--grp);border-radius:9px;padding:2px;margin:4px 0 8px}
+.seg-thumb{position:absolute;top:2px;bottom:2px;left:2px;width:calc(50% - 2px);border-radius:7px;background:var(--grp3);box-shadow:0 3px 8px rgba(0,0,0,.35),0 0 0 .5px rgba(255,255,255,.04);transition:transform var(--t-snappy) var(--spring-soft)}
+.seg[data-on="top"] .seg-thumb{transform:translateX(100%)}
+.seg button{position:relative;z-index:1;appearance:none;border:0;background:none;border-radius:7px;padding:6px;font-size:14px;font-weight:500;color:var(--sec)}
+.seg button[aria-selected="true"]{color:var(--label);font-weight:600}
+#jbody{display:flex;flex-direction:column;gap:8px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr)}
+.stats > div{padding:12px 14px;border-right:.5px solid var(--sep)}
+.stats > div:last-child{border-right:0}
+.stats b{display:block;font:600 28px/1.15 var(--display);font-variant-numeric:tabular-nums}
+.stats span{font-size:12px;color:var(--sec)}
+
+/* beans */
+.scan{appearance:none;border:0;width:100%;border-radius:14px;background:var(--grp);padding:18px 16px;display:flex;gap:14px;align-items:center;text-align:left}
+.scan .ico{width:44px;height:44px;border-radius:50%;background:var(--accent);color:#1A0F00;display:flex;align-items:center;justify-content:center;flex:none}
+.scan .ico svg{width:22px;height:22px}
+
+/* sheet */
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:20}
+#sheet{position:fixed;left:0;right:0;bottom:0;top:calc(env(safe-area-inset-top) + 26px);z-index:21;background:var(--grp);border-radius:12px 12px 0 0;display:flex;flex-direction:column;max-width:600px;margin:0 auto}
+.sheet-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:14px 16px 10px;gap:8px}
+.sheet-head h2{font:600 17px var(--font);margin:0;text-align:center}
+.sheet-head .link{font-size:17px}
+#sheet-save{justify-self:end;font-weight:600}
+#sheet-close{justify-self:start}
+#sheet-body{overflow:auto;padding:4px 16px calc(env(safe-area-inset-bottom) + 28px);display:flex;flex-direction:column;gap:6px;-webkit-overflow-scrolling:touch}
+#sheet .grp{background:var(--grp2)}
+#sheet .rgrid > div,#sheet .stats > div{border-color:rgba(84,84,88,.45)}
+.hero{width:100%;max-height:300px;object-fit:cover;border-radius:12px;background:var(--grp2)}
+.d-title{font:700 28px/1.15 var(--display);margin:12px 4px 0;text-wrap:balance}
+.d-sub{color:var(--sec);margin:2px 4px 0;font-size:15px}
+.err{font-size:15px;color:#FFB3AE;background:rgba(255,69,58,.15);border-radius:10px;padding:10px 14px;margin:4px 0}
+.note{font-size:15px;color:var(--sec);margin:0}
+.btn-row{display:flex;gap:8px;margin-top:8px}
+.btn{appearance:none;border:0;border-radius:12px;min-height:50px;padding:0 16px;font-weight:600;font-size:17px;flex:1;background:var(--grp2);color:var(--label)}
+.btn.go{background:var(--accent);color:#1A0F00}
+.btn.red{color:var(--red)}
+.btn:disabled{opacity:.4}
+
+/* form rows */
+.frow{display:flex;align-items:center;gap:12px;min-height:44px;padding:6px 16px;position:relative}
+.frow label{flex:none;min-width:96px}
+.frow input,.frow select{flex:1;min-width:0;text-align:right;background:none;border:0;font-size:17px;color:var(--sec);padding:6px 0;-webkit-appearance:none;appearance:none}
+.frow select{direction:rtl}
+.frow input:focus{color:var(--label);outline:none}
+.frow input::placeholder{color:var(--ter)}
+.frow + .frow::before,.frow + .srow::before,.srow + .frow::before,.srow + .srow::before,.ta::before{content:"";position:absolute;top:0;left:16px;right:0;height:.5px;background:var(--sep)}
+.ta{position:relative;padding:10px 16px}
+.ta textarea{width:100%;min-height:84px;background:none;border:0;font-size:17px;resize:vertical;color:var(--label);padding:0}
+.ta textarea:focus{outline:none}
+.ta textarea::placeholder{color:var(--ter)}
+.srow{padding:10px 16px 12px;position:relative}
+.srow-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.srow-top output{font-variant-numeric:tabular-nums;color:var(--sec)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(to right,var(--accent) var(--p,50%),var(--grp3) var(--p,50%))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;margin-top:-12px;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--grp3)}
+input[type=range]::-moz-range-progress{height:4px;border-radius:2px;background:var(--accent)}
+input[type=range]::-moz-range-thumb{width:28px;height:28px;border:0;border-radius:50%;background:#fff}
+.ratio-line{font-size:13px;color:var(--sec);padding:6px 16px 0}
+.gwrap{position:relative}
+#sheet .seg{background:var(--grp2)}
+#sheet .seg-thumb{background:#5A5A5E}
+.gwrap::before,.gwrap + .srow::before,.gwrap + .frow::before{content:"";position:absolute;top:0;left:16px;right:0;height:.5px;background:var(--sep)}
+.gwrap.swapin{animation:fadein .4s var(--spring-soft)}
+.zone{position:relative;height:4px;margin:8px 14px 0;border-radius:2px;background:rgba(91,143,224,.12)}
+.zone span{position:absolute;top:0;bottom:0;border-radius:2px;background:var(--water);opacity:.75}
+.ghint{font-size:12px;color:var(--sec);margin-top:6px}
+.ratio-line b{color:var(--accent);font-weight:600}
+.rating{display:flex;gap:2px;padding:6px 12px}
+.rating button{appearance:none;border:0;background:none;font-size:32px;line-height:1;color:var(--grp3);padding:2px 4px}
+.rating button.on{color:var(--accent)}
+.pick{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px}
+.pick button{appearance:none;border:0;background:var(--grp3);border-radius:99px;padding:7px 13px;font-size:15px;color:var(--label)}
+.pick button.on{background:var(--accent);color:#1A0F00;font-weight:600}
+.dgrid{display:grid;grid-template-columns:1fr 1fr}
+.dgrid > div{padding:10px 16px;border-bottom:.5px solid var(--sep)}
+.dgrid > div:nth-child(odd){border-right:.5px solid var(--sep)}
+.dgrid small{display:block;font-size:12px;color:var(--sec)}
+.dgrid span{font-size:17px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.tags{display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px 0}
+.tag{font-size:13px;padding:3px 10px;border-radius:99px;background:var(--grp3);color:var(--sec)}
+.spin{display:inline-block;width:15px;height:15px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ---------- drawdown v2 · mono (brand guide v2) ----------
+   black ground, milk text, square corners, outlined secondary buttons, hairlines,
+   italic serif titles, Geist for the interface, water blue as the only colour */
+:root{
+  --bg:#000000; --grp:#121212; --grp2:#1c1c1c; --grp3:#2a2a2a; --sep:#3a3a3a;
+  --label:#f4f2ec; --sec:#8c8c8c; --ter:#5e5e5e;
+  --accent:#f4f2ec; --accent-dim:rgba(244,242,236,.1);
+  --water:#9db8dc; --water-deep:#2e3a4a; --water-done:rgba(157,184,220,.35);
+  --font:Geist, -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
+  --display:Geist, -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
+  --serif:"Instrument Serif", Georgia, "Times New Roman", serif;
+  --mono:"Geist Mono", ui-monospace, Menlo, monospace;
+}
+body{letter-spacing:0}
+.grp,.btn,.pill,.scan,.again,.pick button,.seg,.seg button,.seg-thumb,#sheet,.hero,.thumb,.err,.bar,.fill,.tag,.rgrid,.zone,.zone span,.picker select,.frow select{border-radius:0}
+.lt{font:italic 400 48px/1 var(--serif);letter-spacing:-.01em;margin:30px 4px 10px}
+.d-title{font:italic 400 42px/1 var(--serif);letter-spacing:-.01em}
+.picker.big span{font:italic 400 44px/1.05 var(--serif);letter-spacing:-.01em}
+.sheet-head h2{font-weight:500}
+.clock{font-weight:300}
+.ring-wrap circle{stroke-width:3px}
+#ring-fg{stroke-linecap:butt}
+.ring-sub{text-transform:uppercase;letter-spacing:.08em;font-size:12px}
+.pill{font-weight:400;font-size:19px;min-height:60px}
+.pill.go{background:var(--label);color:#000}
+.pill.ghost{background:transparent;color:var(--label);box-shadow:inset 0 0 0 1.5px var(--label)}
+.btn{font-weight:400;background:transparent;color:var(--label);box-shadow:inset 0 0 0 1.5px var(--label)}
+.btn.go{background:var(--label);color:#000;box-shadow:none}
+.btn.red{color:#ff6961;box-shadow:inset 0 0 0 1.5px #ff6961}
+.again{background:transparent;color:var(--label);box-shadow:inset 0 0 0 1.5px var(--label);font-weight:400}
+.link{color:var(--label);text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+.sec-h .link{text-transform:none}
+.acc{color:var(--label)}
+.scan{background:var(--grp);box-shadow:inset 0 0 0 1.5px var(--label)}
+.scan .ico{border-radius:0;background:var(--label);color:#000}
+.cell + .cell::before,.cell + .cellw::before,.cellw + .cell::before,.cellw + .cellw::before,.frow + .frow::before,.frow + .srow::before,.srow + .frow::before,.srow + .srow::before,.ta::before,.gwrap::before{background:var(--sep)}
+.seg{background:var(--grp);padding:3px}
+.seg-thumb{top:3px;bottom:3px;left:3px;width:calc(50% - 3px);background:#000;box-shadow:none}
+#sheet .seg{background:var(--grp2)}
+#sheet .seg-thumb{background:#000}
+.pick button{background:transparent;box-shadow:inset 0 0 0 1px var(--sep)}
+.pick button.on{background:var(--label);color:#000;box-shadow:none;font-weight:500}
+.rating button.on{color:var(--label)}
+.stars{color:var(--label)}
+.bar{height:16px}
+.pour-top{text-transform:uppercase;letter-spacing:.04em}
+.c-sub.num,.foot .num{font-family:var(--mono);font-size:12.5px}
+nav{background:var(--grp);-webkit-backdrop-filter:none;backdrop-filter:none;border-top:0;padding:20px 0 calc(env(safe-area-inset-bottom) + 14px)}
+nav a{font-size:13px;font-weight:400;letter-spacing:.04em;text-transform:uppercase;color:var(--ter)}
+nav a svg{display:none}
+nav a[aria-current="page"]{color:var(--label)}
+#dock{bottom:calc(env(safe-area-inset-bottom) + 58px)}
+.tip strong{font-weight:500}
+.empty{font-weight:300}
+
+/* ---------- motion: iOS-style springs ---------- */
+:root{
+  --ease:cubic-bezier(.32,.72,0,1);
+  --spring-soft:var(--ease); --spring-bounce:cubic-bezier(.34,1.32,.64,1); --spring-snappy:var(--ease);
+  --t-soft:.59s; --t-bounce:.51s; --t-snappy:.4s;
+}
+@supports (transition-timing-function: linear(0, 1)){
+  :root{
+    --spring-soft:linear(0, 0.0256, 0.0873, 0.1682, 0.2571, 0.3467, 0.4324, 0.5118, 0.5835, 0.647, 0.7027, 0.7508, 0.792, 0.8271, 0.8568, 0.8817, 0.9026, 0.92, 0.9344, 0.9463, 0.9562, 0.9643, 0.9709, 0.9764, 0.9808, 0.9845, 0.9874, 0.9898, 0.9918, 0.9934, 0.9947, 0.9957, 0.9965, 0.9972, 0.9978, 0.9982, 1);
+    --spring-bounce:linear(0, 0.0203, 0.073, 0.1476, 0.2354, 0.3297, 0.425, 0.5174, 0.6041, 0.6833, 0.7538, 0.8153, 0.8678, 0.9115, 0.9472, 0.9755, 0.9973, 1.0135, 1.0249, 1.0323, 1.0366, 1.0383, 1.0381, 1.0365, 1.0338, 1.0306, 1.0271, 1.0234, 1.0198, 1.0164, 1.0132, 1.0104, 1.0079, 1.0058, 1.004, 1.0025, 1);
+    --spring-snappy:linear(0, 0.0238, 0.0839, 0.1659, 0.2593, 0.3562, 0.4513, 0.5408, 0.6224, 0.6951, 0.7584, 0.8124, 0.8577, 0.895, 0.9252, 0.9492, 0.9678, 0.982, 0.9924, 0.9999, 1.005, 1.0083, 1.0102, 1.011, 1.0111, 1.0106, 1.0098, 1.0088, 1.0078, 1.0067, 1.0057, 1.0047, 1.0038, 1.0031, 1.0024, 1.0019, 1);
+  }
+}
+/* press: quick squeeze down, spring back on release */
+.pill,.btn,.again,.scan,.pick button,.rating button,.seg button{transition:transform .4s var(--spring-soft),background-color .3s var(--ease),color .3s var(--ease),opacity .3s var(--ease)}
+.pill:active,.btn:active,.again:active,.scan:active,.pick button:active,.seg button:active{transform:scale(.97);transition-duration:.1s;transition-timing-function:ease-out}
+.link,.picker{transition:opacity .35s var(--ease)}
+.link:active,.picker:active{opacity:.45;transition-duration:.06s}
+.cell{transition:background-color .4s var(--ease)}
+.cell:active{background-color:rgba(255,255,255,.09);transition-duration:0s}
+nav a{transition:color .3s var(--ease)}
+nav a svg{transition:transform .4s var(--spring-soft)}
+nav a:active svg{transform:scale(.9);transition-duration:.1s;transition-timing-function:ease-out}
+nav a.pop svg{animation:pop var(--t-snappy) var(--spring-soft)}
+@keyframes pop{from{transform:scale(.88)}to{transform:scale(1)}}
+.rating button.pop{animation:starpop var(--t-snappy) var(--spring-soft)}
+@keyframes starpop{from{transform:scale(1.25)}to{transform:none}}
+input[type=range]::-webkit-slider-thumb{transition:transform .35s var(--spring-bounce)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.12)}
+
+/* tab change: content rises in, staggered */
+main.enter > *{animation:enter var(--t-soft) var(--spring-soft) both}
+main.enter > *:nth-child(2){animation-delay:.025s} main.enter > *:nth-child(3){animation-delay:.05s}
+main.enter > *:nth-child(4){animation-delay:.075s} main.enter > *:nth-child(5){animation-delay:.1s}
+main.enter > *:nth-child(6){animation-delay:.12s} main.enter > *:nth-child(n+7){animation-delay:.14s}
+@keyframes enter{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+#jbody.swap{animation:fadein .4s var(--spring-soft)}
+@keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* sheet: slides up on a spring, page recedes behind it, drag down to close */
+.sheet-top{touch-action:pan-x;cursor:grab;flex:none}
+.grabber{width:36px;height:5px;border-radius:3px;background:var(--grp3);margin:7px auto 0}
+.sheet-head{padding-top:8px}
+#sheet{transform:translateY(105%);transition:transform var(--t-soft) var(--spring-soft);will-change:transform}
+#sheet.open{transform:translateY(0)}
+#sheet.closing{transition:transform var(--t-snappy) var(--ease)}
+#sheet.dragging,#scrim.dragging{transition:none}
+#scrim{opacity:0;transition:opacity .45s var(--ease)}
+#scrim.open{opacity:1}
+#sheet-body.swap > *{animation:fadein .4s var(--spring-soft) both}
+#view{transition:transform var(--t-soft) var(--spring-soft)}
+body.sheet-up #view{transform:scale(.93)}
+nav{transition:opacity .45s var(--ease)}
+body.sheet-up nav{opacity:.35}
+
+/* timer */
+.ring-wrap.kick{animation:kick .4s var(--spring-soft)}
+@keyframes kick{from{transform:scale(.97)}to{transform:none}}
+#ring-fg{transition:stroke-dashoffset .8s var(--spring-soft),opacity .2s var(--ease)}
+#ring-fg.zero{opacity:0;transition:stroke-dashoffset .8s var(--spring-soft),opacity .25s var(--ease) .5s}
+body.timing #ring-fg{transition:opacity .2s var(--ease)}
+.clock{transition:opacity .45s var(--ease)}
+.clock.paused{opacity:.55}
+
+/* dock buttons spring in when they change */
+#dock{transition:transform var(--t-soft) var(--spring-soft),opacity .35s var(--ease)}
+#dock.away{transform:translateY(30px);opacity:0;pointer-events:none}
+body.sheet-up #dock{opacity:0;pointer-events:none}
+#dock .pill{animation:pillin var(--t-snappy) var(--spring-soft) both}
+#dock .pill.ghost{animation-name:ghostin}
+@keyframes pillin{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+@keyframes ghostin{from{opacity:0;transform:translateX(-14px) scale(.8)}to{opacity:1;transform:none}}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition-property:opacity,background-color,color!important;transition-duration:.2s!important;transition-delay:0s!important;transition-timing-function:ease!important}
+  #sheet,#sheet.open,body.sheet-up #view,#dock.away{transform:none!important}
+  #sheet{opacity:0}
+  #sheet.open{opacity:1}
+}
+</style>
+</head>
+<body>
+<main id="view"></main>
+<div id="dock" class="away"></div>
+
+<nav aria-label="Sections">
+  <a href="#brew" data-tab="brew"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="15" r="9.5"/><path d="M14 9.5V15l3.5 2.5M11 3h6"/></svg>Brew</a>
+  <a href="#journal" data-tab="journal"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="4" width="17" height="20" rx="3"/><path d="M10 10h8M10 14h8M10 18h5"/></svg>Journal</a>
+  <a href="#beans" data-tab="beans"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><ellipse cx="14" cy="14" rx="7" ry="10" transform="rotate(32 14 14)"/><path d="M10 21c3.5-3 4-10.5 8-14"/></svg>Beans</a>
+  <a href="#gear" data-tab="gear"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h16l-6 8.5V23h-4v-6.5z"/><path d="M9 4.5h10"/></svg>Gear</a>
+</nav>
+
+<input type="file" id="cam" accept="image/*" capture="environment" hidden>
+<input type="file" id="pick" accept="image/*" hidden>
+<div id="scrim" hidden></div>
+<section id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
+  <div class="sheet-top" id="sheet-top"><div class="grabber" aria-hidden="true"></div>
+  <div class="sheet-head"><button class="link" id="sheet-close">Close</button><h2 id="sheet-title"></h2><button class="link" id="sheet-save" type="submit" hidden>Save</button></div></div>
+  <div id="sheet-body"></div>
+</section>
+
+<script>
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const newId = p => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const num = v => { const n = parseFloat(String(v ?? '').replace(',', '.')); return isFinite(n) ? n : null; };
+const use = n => (window.claude && window.claude.use) ? window.claude.use(n).catch(() => null) : Promise.resolve(null);
+const TAGS = ['sweet','balanced','fruity','floral','chocolatey','juicy','sour','bitter','astringent','thin','heavy','muddy'];
+const ROASTS = ['light','medium-light','medium','medium-dark','dark'];
+const I = {
+  chev:'<svg class="chev" viewBox="0 0 8 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1.5 1.5 5 5-5 5"/></svg>',
+  down:'<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2.5 4.5 3.5 3.5 3.5-3.5"/></svg>',
+  play:'<svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 3.8v12.4c0 .8.9 1.3 1.6.8l9.3-6.2c.6-.4.6-1.2 0-1.6L7.6 3c-.7-.5-1.6 0-1.6.8z"/></svg>',
+  stop:'<svg viewBox="0 0 20 20" fill="currentColor"><rect x="4" y="4" width="12" height="12" rx="2.5"/></svg>',
+  reset:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10a6.5 6.5 0 1 0 2-4.7M3.5 3v3.5H7"/></svg>',
+  cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 8.5A2 2 0 0 1 5 6.5h2.2l1.6-2h6.4l1.6 2H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.8"/></svg>',
+  check:'<svg class="check" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9.5 4 4 8-9"/></svg>'
+};
+
+function fmtTime(sec){ if(sec == null || isNaN(sec)) return '–'; sec = Math.round(sec); return Math.floor(sec/60) + ':' + String(sec%60).padStart(2,'0'); }
+function parseTime(v){
+  if(typeof v === 'number') return v;
+  v = String(v ?? '').trim(); if(!v) return null;
+  const m = v.match(/^(\d+)[:.,](\d{1,2})$/); if(m) return (+m[1])*60 + (+m[2]);
+  const n = num(v); if(n == null) return null; return n < 15 ? Math.round(n*60) : Math.round(n);
+}
+function fmtDate(iso){ try{ return new Date(iso).toLocaleString('en-GB',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }catch(e){ return iso; } }
+function localDT(d = new Date()){ const p = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+function ratio(dose, water){ return dose && water ? '1:' + (water/dose).toFixed(1) : '–'; }
+function stars(r){ r = Math.round(r || 0); let s = ''; for(let i=1;i<=5;i++) s += i <= r ? '★' : '<span class="off">★</span>'; return `<span class="stars" aria-label="${r} of 5">${s}</span>`; }
+function daysOff(d){ if(!d) return null; const t = new Date(d); if(isNaN(t)) return null; return Math.floor((Date.now() - t) / 864e5); }
+
+/* ---------- state + storage ---------- */
+const S = { setups:[], beans:[], brews:[], prefs:{ id:'prefs', kind:'prefs', setupId:null, plan:null } };
+let store = null, loaded = false;
+
+function ingest(docs){
+  S.setups = []; S.beans = []; S.brews = [];
+  for(const d of docs){
+    if(d.kind === 'setup') S.setups.push(d);
+    else if(d.kind === 'bean') S.beans.push(d);
+    else if(d.kind === 'brew') S.brews.push(d);
+    else if(d.kind === 'prefs') S.prefs = d;
+  }
+  S.brews.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  S.beans.sort((a,b) => (b.created||0) - (a.created||0));
+  S.setups.sort((a,b) => (a.created||0) - (b.created||0));
+  const first = !loaded; loaded = true; render(); if(first) animateEnter();
+}
+function allDocs(){ return [...S.setups, ...S.beans, ...S.brews, S.prefs]; }
+function localStore(){
+  let all = {};
+  try { all = JSON.parse(localStorage.getItem('brewlog-v1') || '{}'); } catch(e){}
+  const persist = () => { try { localStorage.setItem('brewlog-v1', JSON.stringify(all)); } catch(e){} };
+  return { mode:'local', start(){ ingest(Object.values(all)); }, async put(o){ all[o.id] = o; persist(); }, async del(id){ delete all[id]; persist(); } };
+}
+function readSnap(snap){
+  const arr = Array.isArray(snap) ? snap : (snap && snap.docs) || [];
+  return arr.map(d => { const data = typeof d.data === 'function' ? d.data() : (d.data ?? d); return { ...data, id: d.id ?? data.id }; });
+}
+async function cloudStore(db, user){
+  const uid = await user.id(); if(!uid) return null;
+  const col = db.collection('data/users/' + uid);
+  return {
+    mode:'cloud',
+    start(){ col.onSnapshot(snap => { if(!fellBack){ clearTimeout(loadTimer); syncState = 'cloud'; ingest(readSnap(snap)); } },
+                            () => { if(!loaded) fallBack('Couldn’t load your synced data. Saving on this device for now.'); }); },
+    put(o){ return col.doc(o.id).set(o); },
+    del(id){ return col.doc(id).delete(); }
+  };
+}
+async function save(o){
+  const key = o.kind === 'setup' ? 'setups' : o.kind === 'bean' ? 'beans' : o.kind === 'brew' ? 'brews' : null;
+  if(key){ const i = S[key].findIndex(x => x.id === o.id); if(i >= 0) S[key][i] = o; else S[key].unshift(o); }
+  else if(o.kind === 'prefs') S.prefs = o;
+  ingest(allDocs());
+  try { await store.put(o); } catch(e){ toastErr('Couldn’t save that change. Check your connection and try again.'); }
+}
+async function remove(kind, id){
+  const key = kind + 's'; S[key] = S[key].filter(x => x.id !== id);
+  ingest(allDocs());
+  try { await store.del(id); } catch(e){ toastErr('Couldn’t delete that. Try again.'); }
+}
+let fellBack = false, loadTimer = null, bootNote = '', syncState = 'loading';
+function fallBack(msg){ if(fellBack) return; fellBack = true; bootNote = msg || ''; syncState = 'local'; store = localStore(); store.start(); }
+
+/* ---------- lookups ---------- */
+const setupById = id => S.setups.find(s => s.id === id);
+const beanById = id => S.beans.find(b => b.id === id);
+const brewById = id => S.brews.find(b => b.id === id);
+function curSetup(){ return setupById(S.prefs.setupId) || S.setups[0] || null; }
+function setupLabel(s){ if(!s) return 'No setup'; const g = grinderOf(s); return s.name || [s.brewer, g ? g.model : s.grinder].filter(Boolean).join(' · ') || 'Setup'; }
+function setupGear(s){ const g = grinderOf(s); return [s.brewer, g ? gName(g) : s.grinder, s.kettle, s.filter].filter(Boolean).join(' · '); }
+function setupText(s){ if(!s) return 'Unknown setup'; const g = grinderOf(s); return `Brewer: ${s.brewer||'?'}; Grinder: ${g ? gName(g) + ' (' + g.type + ')' : (s.grinder||'?')}; Kettle: ${s.kettle||'?'}; Filter: ${s.filter||'?'}; Notes: ${s.notes||'-'}`; }
+function grindNote(s){
+  const g = grinderOf(s);
+  if(!g) return 'Give grind settings in the grinder’s own markings if you know this grinder; otherwise describe the grind (e.g. medium-fine, like table salt).';
+  const z = gZone(g);
+  return `Grind notation for the ${gName(g)}: ${gNotation(g)}. Pour-over range on this grinder: ${g.po[0]} to ${g.po[1]}${z ? `; a typical V60 zone is ${gStr(g, z.vlo)} to ${gStr(g, z.vhi)}` : ''}. Write every grind setting in exactly this notation.`;
+}
+function beanLabel(b){ return b ? (b.name || b.origin || 'Unnamed beans') : 'Pick your beans'; }
+
+/* ---------- grinders ----------
+   po = pour-over range in the grinder's own notation (Honest Coffee Guide grind chart).
+   kind: steps = plain numbers/clicks; ode = Fellow 1–11 with two clicks between numbers;
+   rot = 1Zpresso-style rotation.number.tick; text = notation we don't model, typed by hand.
+   nudge = clicks that make a noticeable change (~30–40 µm) for quick tips. */
+const GRINDERS = [
+  // hand
+  { id:'comandante-c40', brand:'Comandante', model:'C40 MK4', type:'hand', kind:'steps', min:0, max:50, step:1, unit:'clicks', po:['16','34'], nudge:1, alias:['c40'] },
+  { id:'comandante-c40-red', brand:'Comandante', model:'C40 MK4 + Red Clix', type:'hand', kind:'steps', min:0, max:100, step:1, unit:'clicks', po:['31','68'], nudge:2, alias:['red clix','redclix'] },
+  { id:'comandante-x25', brand:'Comandante', model:'X25 Trailmaster', type:'hand', kind:'steps', min:0, max:50, step:1, unit:'clicks', po:['16','34'], nudge:1, alias:['x25','trailmaster'] },
+  { id:'1zpresso-k-ultra', brand:'1Zpresso', model:'K-Ultra', type:'hand', kind:'rot', nums:10, ticks:10, maxRot:3, po:['0.5.4','1.0.0'], nudge:2, alias:['k ultra','kultra'] },
+  { id:'1zpresso-k-max', brand:'1Zpresso', model:'K-Max / K-Pro', type:'hand', kind:'text', unit:'rotation.number.tick from zero', po:['0.5.1','1.2.5'], alias:['k max','kmax','k pro'] },
+  { id:'1zpresso-k-plus', brand:'1Zpresso', model:'K-Plus', type:'hand', kind:'text', unit:'rotation.number.tick from zero', po:['0.5.0','1.2.1'], alias:['k plus','kplus'] },
+  { id:'1zpresso-jx-pro', brand:'1Zpresso', model:'JX-Pro', type:'hand', kind:'rot', nums:10, ticks:4, maxRot:6, po:['2.2.2','5.0.0'], nudge:3, alias:['jx pro','jxpro'] },
+  { id:'1zpresso-jx', brand:'1Zpresso', model:'JX / J', type:'hand', kind:'text', unit:'rotation.number.tick from zero', po:['1.5.1','3.4.1'], alias:['1zpresso jx'] },
+  { id:'1zpresso-j-ultra', brand:'1Zpresso', model:'J-Ultra', type:'hand', kind:'text', unit:'rotation.number.tick from zero', po:['1.6.7','3.7.8'], alias:['j ultra'] },
+  { id:'1zpresso-x-ultra', brand:'1Zpresso', model:'X-Ultra', type:'hand', kind:'text', unit:'rotation.number.tick from zero', po:['1.2.2','3.0.4'], alias:['x ultra'] },
+  { id:'1zpresso-x-pro', brand:'1Zpresso', model:'X-Pro', type:'hand', kind:'text', unit:'rotation.number.tick from zero', po:['1.2.0','3.0.0'], alias:['x pro'] },
+  { id:'1zpresso-q2', brand:'1Zpresso', model:'Q2 / Q Air', type:'hand', kind:'rot', nums:10, ticks:3, maxRot:4, po:['1.2.1','2.7.1'], nudge:1, alias:['q2','q air'] },
+  { id:'1zpresso-zp6', brand:'1Zpresso', model:'ZP6 Special', type:'hand', kind:'text', unit:'number.click from zero', po:['1.9','7.6'], alias:['zp6'] },
+  { id:'timemore-c2', brand:'Timemore', model:'C2 / C2 Max / C2 Fold', type:'hand', kind:'steps', min:0, max:36, step:1, unit:'clicks', po:['13','29'], nudge:1, alias:['chestnut c2','timemore c2'] },
+  { id:'timemore-c3', brand:'Timemore', model:'C3 / C3S / C3 Pro / C3 Max', type:'hand', kind:'steps', min:0, max:36, step:1, unit:'clicks', po:['11','24'], nudge:1, alias:['chestnut c3','timemore c3','c3s'] },
+  { id:'timemore-c3-esp', brand:'Timemore', model:'C3 ESP / C3 ESP Pro', type:'hand', kind:'text', unit:'rotation.number.tick from zero', po:['1.2.1','2.7.1'], alias:['c3 esp'] },
+  { id:'timemore-c5-esp', brand:'Timemore', model:'C5 ESP Pro', type:'hand', kind:'text', unit:'rotation.number.tick from zero', po:['1.0.0','2.2.1'], alias:['c5 esp'] },
+  { id:'timemore-g1', brand:'Timemore', model:'G1 / G1 Plus', type:'hand', kind:'steps', min:0, max:36, step:1, unit:'clicks', po:['12','25'], nudge:1, alias:['timemore g1'] },
+  { id:'timemore-nano', brand:'Timemore', model:'Nano', type:'hand', kind:'steps', min:0, max:40, step:1, unit:'clicks', po:['15','30'], nudge:1, alias:['timemore nano'] },
+  { id:'kingrinder-k', brand:'KINGrinder', model:'K0 – K5 (K2)', type:'hand', kind:'steps', min:0, max:180, step:1, unit:'clicks', po:['56','126'], nudge:2, alias:['kingrinder k'] },
+  { id:'kingrinder-p', brand:'KINGrinder', model:'P0 / P1 / P2', type:'hand', kind:'steps', min:0, max:110, step:1, unit:'clicks', po:['39','86'], nudge:2, alias:['kingrinder p'] },
+  { id:'hario-skerton', brand:'Hario', model:'Skerton Plus / Pro', type:'hand', kind:'steps', min:0, max:10, step:1, unit:'notches', po:['2','5'], nudge:1, alias:['skerton'] },
+  { id:'hario-mini-mill', brand:'Hario', model:'Mini Mill Slim / Plus / Pro', type:'hand', kind:'steps', min:0, max:20, step:1, unit:'clicks', po:['5','12'], nudge:1, alias:['mini mill'] },
+  { id:'porlex-ii', brand:'Porlex', model:'Mini II / Tall II', type:'hand', kind:'steps', min:0, max:25, step:1, unit:'clicks', po:['8','15'], nudge:1, alias:['porlex mini ii','porlex tall ii','mini ii'] },
+  { id:'porlex-i', brand:'Porlex', model:'Mini / Tall (original)', type:'hand', kind:'steps', min:0, max:12, step:1, unit:'clicks', po:['4','7'], nudge:1, alias:['porlex'] },
+  { id:'kinu-m47', brand:'Kinu', model:'M47 (all versions)', type:'hand', kind:'text', unit:'rotations from zero', po:['2.5','5.6'], alias:['m47','kinu'] },
+  { id:'knock-feld47', brand:'Knock', model:'Feld47 / Aergrind', type:'hand', kind:'text', unit:'rotation.number.tick from zero', po:['1.6.1','3.5.0'], alias:['feld47','aergrind'] },
+  { id:'wacaco-exagrind', brand:'Wacaco', model:'Exagrind', type:'hand', kind:'steps', min:0, max:80, step:1, unit:'clicks', po:['20','58'], nudge:2, alias:['exagrind'] },
+  { id:'varia-hand', brand:'Varia', model:'Hand grinder', type:'hand', kind:'steps', min:0, max:80, step:1, unit:'clicks', po:['25','55'], nudge:2, alias:['varia hand'] },
+  { id:'helor-101', brand:'Helor', model:'101', type:'hand', kind:'steps', min:0, max:70, step:1, unit:'clicks', po:['24','53'], nudge:2, alias:['helor 101'] },
+  { id:'lagom-mini', brand:'Option-O', model:'Lagom Mini (Moonshine burrs)', type:'hand', kind:'steps', min:0, max:140, step:1, unit:'dots', po:['41','93'], nudge:2, alias:['lagom mini'] },
+  // electric
+  { id:'fellow-ode-2', brand:'Fellow', model:'Ode Gen 2', type:'electric', kind:'ode', po:['2.2','8.1'], nudge:1, alias:['ode gen 2','ode gen2','ode 2','ode brew grinder gen 2','ode'] },
+  { id:'fellow-ode-1', brand:'Fellow', model:'Ode Gen 1', type:'electric', kind:'ode', po:['1','5.1'], nudge:1, alias:['ode gen 1','ode gen1','ode brew grinder gen 1'] },
+  { id:'fellow-opus', brand:'Fellow', model:'Opus', type:'electric', kind:'text', unit:'dial number', po:['3','8.5'], alias:['opus'] },
+  { id:'baratza-encore', brand:'Baratza', model:'Encore', type:'electric', kind:'steps', min:0, max:40, step:1, unit:'setting', po:['7','28'], nudge:1, alias:['encore'] },
+  { id:'baratza-encore-esp', brand:'Baratza', model:'Encore ESP', type:'electric', kind:'steps', min:0, max:40, step:1, unit:'setting', po:['16','30'], nudge:1, alias:['encore esp'] },
+  { id:'baratza-virtuoso', brand:'Baratza', model:'Virtuoso+', type:'electric', kind:'steps', min:0, max:40, step:1, unit:'setting', po:['9','29'], nudge:1, alias:['virtuoso'] },
+  { id:'baratza-sette', brand:'Baratza', model:'Sette 270 / Sette 30', type:'electric', kind:'steps', min:1, max:30, step:1, unit:'setting', po:['9','30'], nudge:1, alias:['sette'] },
+  { id:'baratza-vario', brand:'Baratza', model:'Vario+ / Vario W+', type:'electric', kind:'text', unit:'macro number + micro letter, e.g. 5M', po:['2V','8M'], alias:['vario'] },
+  { id:'baratza-forte', brand:'Baratza', model:'Forté AP / BG', type:'electric', kind:'text', unit:'macro number + micro letter, e.g. 5M', po:['2Z','8P'], alias:['forte','forté'] },
+  { id:'wilfa-uniform', brand:'Wilfa', model:'Uniform', type:'electric', kind:'steps', min:0, max:41, step:1, unit:'setting', po:['11','36'], nudge:1, alias:['uniform'] },
+  { id:'wilfa-svart', brand:'Wilfa', model:'Svart / Svart Aroma', type:'electric', kind:'text', unit:'dots on the dial', po:['4','14'], alias:['svart'] },
+  { id:'sage-sgp', brand:'Breville / Sage', model:'Smart Grinder Pro', type:'electric', kind:'steps', min:1, max:60, step:1, unit:'setting', po:['21','60'], nudge:2, alias:['smart grinder pro','sgp'] },
+  { id:'df64-2', brand:'Turin', model:'DF64 Gen 2', type:'electric', kind:'steps', min:0, max:90, step:1, unit:'setting', po:['24','77'], nudge:2, alias:['df64'] },
+  { id:'df64v', brand:'Turin', model:'DF64V', type:'electric', kind:'steps', min:0, max:90, step:1, unit:'setting', po:['31','82'], nudge:2, alias:['df64v'] },
+  { id:'df83v', brand:'Turin', model:'DF83V', type:'electric', kind:'steps', min:0, max:90, step:1, unit:'setting', po:['25','70'], nudge:2, alias:['df83v'] },
+  { id:'mk-x54', brand:'Mahlkönig', model:'X54', type:'electric', kind:'steps', min:1, max:35, step:1, unit:'setting', po:['10','35'], nudge:1, alias:['x54'] },
+  { id:'mk-ek43', brand:'Mahlkönig', model:'EK43 (0–16 dial)', type:'electric', kind:'steps', min:0, max:16, step:0.5, unit:'setting', po:['6','16'], nudge:1, alias:['ek43'] },
+  { id:'eureka-specialita', brand:'Eureka', model:'Mignon Specialità / Silenzio', type:'electric', kind:'text', unit:'rotations from zero', po:['4.5','2+2.5'], alias:['specialita','specialità','silenzio'] },
+  { id:'eureka-oro', brand:'Eureka', model:'Mignon Oro', type:'electric', kind:'text', unit:'dial number', po:['9','29'], alias:['mignon oro'] },
+  { id:'timemore-078s', brand:'Timemore', model:'Sculptor 078S', type:'electric', kind:'text', unit:'dial number', po:['3.2','12.5'], alias:['078s'] },
+  { id:'timemore-064s', brand:'Timemore', model:'Sculptor 064S', type:'electric', kind:'text', unit:'dial number', po:['3.5','13.9'], alias:['064s'] },
+  { id:'lagom-p64', brand:'Option-O', model:'Lagom P64', type:'electric', kind:'text', unit:'dial number', po:['1.7','6.8'], alias:['p64'] },
+  { id:'varia-vs3', brand:'Varia', model:'VS3', type:'electric', kind:'text', unit:'dial number', po:['3.9','12.1'], alias:['vs3'] },
+  { id:'oxo-conical', brand:'OXO', model:'Conical Burr Grinder', type:'electric', kind:'text', unit:'setting.micro step', po:['4.1','12.1'], alias:['oxo'] },
+  { id:'hario-v60-electric', brand:'Hario', model:'V60 Electric (EVCG-8B)', type:'electric', kind:'steps', min:0, max:45, step:1, unit:'setting', po:['8','44'], nudge:2, alias:['evcg'] }
+];
+const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
+const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
+function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
+function matchGrinder(name){
+  const n = ' ' + norm(name) + ' '; if(n.trim() === '') return null;
+  let best = null, bl = 0;
+  for(const g of GRINDERS){
+    for(const a of [...(g.alias || []), g.model]){ const k = norm(a); if(k && n.includes(' ' + k + ' ') && k.length > bl){ best = g; bl = k.length; } }
+  }
+  return best;
+}
+function grinderOf(setup){ if(!setup) return null; return GMAP[setup.grinderId] || matchGrinder(setup.grinder); }
+function gCount(g){ if(!g) return 0; if(g.kind === 'steps') return Math.round((g.max - g.min) / g.step) + 1; if(g.kind === 'ode') return 31; if(g.kind === 'rot') return g.maxRot * g.nums * g.ticks + 1; return 0; }
+function gIdx(g, s){
+  if(!g) return null; const v = String(s ?? '').trim(); if(!v) return null;
+  if(g.kind === 'steps'){ const n = num(v); if(n == null) return null; const i = Math.round((n - g.min) / g.step); return i >= 0 && i < gCount(g) ? i : null; }
+  if(g.kind === 'ode'){ if(!/^\d{1,2}(\.[12])?$/.test(v)) return null; const [N, sub] = v.split('.'); const i = (+N - 1) * 3 + (+sub || 0); return i >= 0 && i <= 30 ? i : null; }
+  if(g.kind === 'rot'){ const m = v.match(/^(\d+)(?:\.(\d))?(?:\.(\d))?$/); if(!m) return null; const R = +m[1], N = +(m[2] || 0), T = +(m[3] || 0); if(N >= g.nums || T >= g.ticks) return null; const i = (R * g.nums + N) * g.ticks + T; return i < gCount(g) ? i : null; }
+  return null;
+}
+function gStr(g, i){
+  i = Math.max(0, Math.min(gCount(g) - 1, Math.round(i)));
+  if(g.kind === 'steps'){ const d = (String(g.step).split('.')[1] || '').length; return (g.min + i * g.step).toFixed(d); }
+  if(g.kind === 'ode'){ const N = Math.floor(i / 3) + 1, s = i % 3; return s ? `${N}.${s}` : `${N}`; }
+  if(g.kind === 'rot'){ const per = g.nums * g.ticks, R = Math.floor(i / per), r = i % per; return `${R}.${Math.floor(r / g.ticks)}.${r % g.ticks}`; }
+  return '';
+}
+/* V60 sits in the finer ~57% of the pour-over range (400–700 µm of 400–930 µm) */
+function gZone(g){
+  if(!g || g.kind === 'text') return null;
+  const lo = gIdx(g, g.po[0]), hi = gIdx(g, g.po[1]); if(lo == null || hi == null) return null;
+  const vhi = lo + Math.round((hi - lo) * 0.57);
+  return { lo, hi, vlo: lo, vhi, start: Math.round((lo + vhi) / 2) };
+}
+function gUnit(g){ return g && g.kind === 'steps' && g.unit !== 'setting' ? g.unit : ''; }
+function gNotation(g){
+  if(g.kind === 'steps') return `${g.unit === 'setting' ? 'dial setting' : g.unit} from ${g.min} to ${g.max}${g.step !== 1 ? ` in steps of ${g.step}` : ''}, higher is coarser`;
+  if(g.kind === 'ode') return 'dial 1 to 11 with two clicks between each number, written 4, 4.1, 4.2, 5; higher is coarser';
+  if(g.kind === 'rot') return `rotation.number.tick from zero, like ${g.po[0]} (${g.nums} numbers per rotation, ${g.ticks} ticks per number); higher is coarser`;
+  return `${g.unit}, as marked on the grinder`;
+}
+function gHint(g){
+  if(!g) return '';
+  const z = gZone(g), u = gUnit(g) ? ' ' + gUnit(g) : '';
+  return z ? `V60 zone ${gStr(g, z.vlo)}–${gStr(g, z.vhi)}${u} · start around ${gStr(g, z.start)}` : `Pour-over range ${g.po[0]} – ${g.po[1]} (${g.unit})`;
+}
+function gStart(setup){ const g = grinderOf(setup), z = gZone(g); return z ? gStr(g, z.start) : ''; }
+function shiftGrind(val, clicks, setup){
+  const g = grinderOf(setup);
+  if(g && g.kind !== 'text'){ const i = gIdx(g, val); if(i != null) return gStr(g, i + clicks * (g.nudge || 1)); }
+  const n = num(val); if(n != null && /^[\d.,]+$/.test(String(val).trim())) return String(+(n + clicks).toFixed(1));
+  return val;
+}
+
+/* ---------- plan (what you're about to brew) ---------- */
+function brewFrom(b){ return { setupId:b.setupId, beanId:b.beanId, dose:b.dose, water:b.water, grind:b.grind, temp:b.temp, bloomWater:b.bloomWater, bloomTime:b.bloomTime }; }
+function curPlan(){
+  if(S.prefs.plan) return { setupId: curSetup()?.id, ...S.prefs.plan };
+  const last = S.brews[0];
+  if(last?.advice?.next) { const n = last.advice.next; return { ...brewFrom(last), ...Object.fromEntries(Object.entries(n).filter(([,v]) => v != null && v !== '')), source: last.advice.rule ? 'Quick tip from your last cup' : 'AI suggestion from your last cup' }; }
+  if(last) return { ...brewFrom(last), source:'Same as your last brew' };
+  return { setupId: curSetup()?.id, dose:15, water:250, grind: gStart(curSetup()), temp:94, bloomWater:45, bloomTime:45, targetTime:'3:00', source:'Starter recipe' };
+}
+function setPlan(p, source){ const { fromAdvice, ...rest } = p; save({ ...S.prefs, plan: { ...rest, source, at: Date.now() } }); }
+function pourPlan(p){
+  const water = p.water || 250, bw = Math.min(water, p.bloomWater || Math.round((p.dose || 15) * 3)), bt = p.bloomTime || 45;
+  const rest = Math.max(0, water - bw), n = rest > 230 ? 4 : rest > 0 ? 3 : 0, each = n ? Math.round(rest / n / 5) * 5 : 0;
+  const out = [{ label:'Bloom', g: bw, at: 0, total: bw }];
+  let tot = bw;
+  for(let i = 0; i < n; i++){ const g = i === n - 1 ? water - tot : each; tot += g; out.push({ label: 'Pour ' + (i + 1), g, at: bt + i * 30, total: tot }); }
+  return out;
+}
+
+/* ---------- AI ---------- */
+/* AI is resolved once at start-up, so a tap can call it straight away: the first call shows Claude's
+   permission prompt, and that prompt only appears when the call comes directly from a tap. */
+let AI = null, aiReady = use('sample').then(s => (AI = s));
+async function askJSON(prompt, opts = {}){
+  const s = AI || await aiReady;
+  if(!s) throw { code:'unavailable', message:'AI isn’t available in this view.' };
+  if(typeof s.json === 'function'){
+    try { const v = await s.json(prompt, opts); if(v && typeof v === 'object') return v; }
+    catch(e){ if(e && e.code) throw e; }
+  }
+  const r = await s(prompt, opts);
+  const m = (r.text || '').match(/\{[\s\S]*\}/);
+  if(!m) throw { message:'The AI answer couldn’t be read. Try again.' };
+  return JSON.parse(m[0]);
+}
+function errMsg(e){
+  if(!e) return 'Something went wrong. Try again.';
+  if(e.code === 'unavailable') return window.claude ? 'AI needs Claude: open this app while signed in to Claude (claude.ai or the Claude app). If a friend shared it, open their link signed in.' : 'Photo reading and AI tips aren’t on the web version yet. Fill in the details by hand.';
+  if(e.code === 'not_granted') return 'AI wasn’t allowed for this app. Tap the button again and choose Allow when Claude asks.';
+  if(e.code === 'rate_limited') return 'Too many AI requests right now. Wait a minute and try again.';
+  return e.message || 'Something went wrong. Try again.';
+}
+const RECIPE_SHAPE = '{"dose":15,"water":250,"grind":"4.1","temp":94,"bloomWater":45,"bloomTime":45,"targetTime":"3:00","pours":"short pour plan","why":"one or two sentences"}';
+function scanPrompt(setup){
+  return `You read photos of coffee bags and labels for a home pour-over brewer. Extract what is printed and suggest a starting recipe for their setup.
+Setup: ${setupText(setup)}
+${grindNote(setup)}
+Today is ${new Date().toISOString().slice(0,10)}.
+Return only JSON, no prose:
+{"bean":{"name":"","roaster":"","origin":"","process":"","roastLevel":"one of light, medium-light, medium, medium-dark, dark, or empty","roastDate":"YYYY-MM-DD or empty","varietal":"","altitude":"","flavourNotes":""},"recipe":${RECIPE_SHAPE}}
+Use empty strings for anything not visible on the label. Never invent a roast date. Temperatures in °C, weights in grams.`;
+}
+function beanText(b){ return b ? `Name: ${b.name||'-'}; Roaster: ${b.roaster||'-'}; Origin: ${b.origin||'-'}; Process: ${b.process||'-'}; Roast: ${b.roastLevel||'-'}; Roast date: ${b.roastDate||'unknown'}; Varietal: ${b.varietal||'-'}; Altitude: ${b.altitude||'-'}; Label notes: ${b.flavourNotes||'-'}` : 'Unknown beans'; }
+function recipePrompt(bean, setup){
+  return `You are a pour-over coach. Suggest a starting recipe for these beans on this setup.
+Setup: ${setupText(setup)}
+${grindNote(setup)}
+Beans: ${beanText(bean)}
+Today is ${new Date().toISOString().slice(0,10)}.
+Return only JSON, no prose: ${RECIPE_SHAPE}`;
+}
+function brewForAI(b){ return { date:b.date, dose:b.dose, water:b.water, ratio:ratio(b.dose,b.water), grind:b.grind, tempC:b.temp, time:fmtTime(b.time), bloom:`${b.bloomWater ?? '?'}g for ${b.bloomTime ?? '?'}s`, rating:b.rating, taste:b.tags, notes:b.notes }; }
+function advicePrompt(history, bean, setup){
+  return `You are a pour-over dial-in coach. Read the brews below (newest first) and the taster's notes, then recommend settings for the NEXT brew. Change one or two variables at a time, and explain in plain words.
+Setup: ${setupText(setup)}
+${grindNote(setup)}
+Beans: ${beanText(bean)}
+Brews: ${JSON.stringify(history.map(brewForAI))}
+Return only JSON, no prose:
+{"summary":"one sentence on what the latest cup tells you","next":{"dose":15,"water":250,"grind":"4","temp":94,"bloomWater":45,"bloomTime":45,"targetTime":"3:00"},"changes":["short change 1","short change 2"],"why":"two sentences max"}`;
+}
+function ruleAdvice(brew, setup){
+  const t = brew.tags || [], time = brew.time || 0;
+  const under = t.some(x => ['sour','thin'].includes(x)) || (time && time < 150);
+  const over = t.some(x => ['bitter','astringent','muddy','heavy'].includes(x)) || time > 260;
+  const next = { dose:brew.dose, water:brew.water, grind:brew.grind, temp:brew.temp, bloomWater:brew.bloomWater, bloomTime:brew.bloomTime, targetTime:'3:00' };
+  const changes = [];
+  if(under && !over){ next.grind = shiftGrind(brew.grind, -1, setup); changes.push(`Grind one step finer (${brew.grind || '?'} → ${next.grind || 'finer'})`); if(brew.temp && brew.temp < 96){ next.temp = brew.temp + 1; changes.push(`Water 1° hotter (${next.temp}°C)`); } }
+  else if(over && !under){ next.grind = shiftGrind(brew.grind, 1, setup); changes.push(`Grind one step coarser (${brew.grind || '?'} → ${next.grind || 'coarser'})`); if(brew.temp && brew.temp > 88){ next.temp = brew.temp - 1; changes.push(`Water 1° cooler (${next.temp}°C)`); } }
+  else changes.push('Keep these settings and brew it again to confirm');
+  return { summary: under ? 'This cup reads under-extracted.' : over ? 'This cup reads over-extracted.' : 'No clear extraction problem in your notes.', next, changes, why:'Sour or thin cups usually need more extraction; bitter or drying cups need less. This is a quick rule, because AI tips aren’t available in this view.', rule:true };
+}
+
+/* ---------- images ---------- */
+function loadImg(file){ return new Promise((res, rej) => { const u = URL.createObjectURL(file); const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('That photo couldn’t be opened. Try another one.')); i.src = u; }); }
+function drawTo(img, max){ const r = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight)); const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth*r); c.height = Math.round(img.naturalHeight*r); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); return c; }
+const toBlob = (c, q) => new Promise(r => c.toBlob(r, 'image/jpeg', q));
+
+/* ---------- sheet ---------- */
+let sheetT = 0;
+const reflow = el => void el.offsetWidth;
+function restartAnim(el, cls){ if(!el) return; el.classList.remove(cls); reflow(el); el.classList.add(cls); }
+function openSheet(title, html, opts = {}){
+  const sh = $('#sheet'), sc = $('#scrim'), body = $('#sheet-body'), wasOpen = sh.classList.contains('open');
+  clearTimeout(sheetT);
+  $('#sheet-title').textContent = title; body.innerHTML = html;
+  const sv = $('#sheet-save');
+  if(opts.form){ sv.hidden = false; sv.textContent = opts.save || 'Save'; sv.setAttribute('form', opts.form); $('#sheet-close').textContent = 'Cancel'; }
+  else { sv.hidden = true; sv.removeAttribute('form'); $('#sheet-close').textContent = 'Close'; }
+  body.scrollTop = 0;
+  if(wasOpen){ restartAnim(body, 'swap'); return; }
+  body.classList.remove('swap');
+  $('#view').style.transformOrigin = `50% ${window.scrollY + innerHeight / 2}px`;
+  sh.classList.remove('closing', 'dragging'); sh.style.transform = '';
+  sh.hidden = false; sc.hidden = false; reflow(sh);
+  requestAnimationFrame(() => { sh.classList.add('open'); sc.classList.add('open'); document.body.classList.add('sheet-up'); });
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet(){
+  const sh = $('#sheet'), sc = $('#scrim'); if(sh.hidden) return;
+  sh.classList.add('closing'); sh.classList.remove('open', 'dragging'); sh.style.transform = '';
+  sc.classList.remove('open', 'dragging'); sc.style.opacity = '';
+  document.body.classList.remove('sheet-up'); document.body.style.overflow = '';
+  clearTimeout(sheetT);
+  sheetT = setTimeout(() => { sh.hidden = true; sc.hidden = true; $('#sheet-body').innerHTML = ''; sh.classList.remove('closing'); }, 420);
+}
+function sheetOpen(){ return $('#sheet').classList.contains('open'); }
+$('#sheet-close').onclick = closeSheet; $('#scrim').onclick = closeSheet;
+/* drag the sheet down to dismiss, with rubber-banding upwards */
+(() => {
+  const sh = $('#sheet'), sc = $('#scrim'), top = $('#sheet-top');
+  let on = false, y0 = 0, dy = 0, ly = 0, lt = 0, v = 0;
+  top.addEventListener('pointerdown', e => {
+    if(e.target.closest('button') || !sheetOpen()) return;
+    on = true; y0 = ly = e.clientY; lt = performance.now(); dy = 0; v = 0;
+    sh.classList.add('dragging'); sc.classList.add('dragging'); top.setPointerCapture(e.pointerId);
+  });
+  top.addEventListener('pointermove', e => {
+    if(!on) return;
+    const now = performance.now(); v = (e.clientY - ly) / Math.max(1, now - lt); ly = e.clientY; lt = now;
+    dy = e.clientY - y0;
+    const over = -dy, dim = sh.offsetHeight, k = 0.55;
+    const d = dy >= 0 ? dy : -(over * dim * k) / (dim + k * over);
+    sh.style.transform = `translateY(${d}px)`;
+    sc.style.opacity = String(Math.max(0, 1 - Math.max(0, dy) / sh.offsetHeight));
+  });
+  const end = () => {
+    if(!on) return; on = false;
+    sh.classList.remove('dragging'); sc.classList.remove('dragging');
+    if(dy > 140 || (dy > 24 && v > 0.45)){
+      /* hand the finger's speed to the close: faster flick, shorter slide */
+      const left = sh.offsetHeight - dy, ms = Math.max(160, Math.min(400, v > 0 ? left / v : 400));
+      sh.style.transitionDuration = ms + 'ms'; closeSheet(); setTimeout(() => { sh.style.transitionDuration = ''; }, ms + 40);
+    }
+    else { sh.style.transform = ''; sc.style.opacity = ''; }
+  };
+  top.addEventListener('pointerup', end); top.addEventListener('pointercancel', end);
+})();
+document.addEventListener('touchstart', () => {}, { passive:true }); /* lets iOS show :active press states */
+function toastErr(msg){ const d = document.createElement('div'); d.className = 'err'; d.textContent = msg; $('#view').prepend(d); setTimeout(() => d.remove(), 5000); }
+
+/* ---------- form widgets ---------- */
+function frow(id, label, val, attrs = ''){ return `<div class="frow"><label for="${id}">${label}</label><input id="${id}" value="${esc(val ?? '')}" ${attrs}></div>`; }
+function srow(id, label, val, min, max, step, unit){
+  const v = val ?? min;
+  return `<div class="srow"><div class="srow-top"><label for="${id}">${label}</label><output id="${id}-o" for="${id}"></output></div>
+    <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}" data-unit="${unit}"></div>`;
+}
+function grindRow(val, setup){
+  const g = grinderOf(setup), z = gZone(g);
+  if(g && z){
+    const span = z.hi - z.lo, cur = gIdx(g, val) ?? z.start;
+    const lo = Math.min(cur, Math.max(0, z.lo - Math.ceil(span * 0.5))), hi = Math.max(cur, Math.min(gCount(g) - 1, z.hi + Math.ceil(span * 0.3)));
+    const pct = i => (i - lo) / Math.max(1, hi - lo) * 100;
+    return `<div class="gwrap" id="grind-wrap"><div class="srow"><div class="srow-top"><label for="g-range">Grind · ${esc(g.model)}</label><output id="g-range-o"></output></div>
+      <input type="range" id="g-range" min="${lo}" max="${hi}" step="1" value="${cur}" data-gid="${g.id}">
+      <div class="zone" aria-hidden="true"><span style="left:${pct(z.vlo)}%;width:${pct(z.vhi) - pct(z.vlo)}%"></span></div>
+      <div class="ghint">${esc(gHint(g))}</div></div></div>`;
+  }
+  return `<div class="gwrap" id="grind-wrap"><div class="frow"><label for="g-text">Grind${g ? ' · ' + esc(g.model) : ''}</label><input id="g-text" value="${esc(val ?? '')}" placeholder="${g ? 'e.g. ' + esc(g.po[0]) : 'Setting'}"></div>${g ? `<div class="ghint" style="padding:0 16px 10px">${esc(gHint(g))}</div>` : ''}</div>`;
+}
+function swapGrindRow(val, setup){
+  const w = $('#grind-wrap'); if(!w) return;
+  const g = grinderOf(setup), keep = g && (g.kind === 'text' || gIdx(g, val) != null) ? val : gStart(setup);
+  const tmp = document.createElement('div'); tmp.innerHTML = grindRow(keep, setup);
+  const el = tmp.firstElementChild; w.replaceWith(el); wireSliders(el);
+  restartAnim(el, 'swapin');
+}
+function readGrind(){ const r = $('#g-range'); if(r) return gStr(GMAP[r.dataset.gid], +r.value); const t = $('#g-text'); return t ? t.value.trim() : ''; }
+function wireSliders(root){
+  root.querySelectorAll('input[type=range]').forEach(r => {
+    const out = root.querySelector('#' + r.id + '-o');
+    const upd = () => {
+      const p = (r.value - r.min) / (r.max - r.min) * 100; r.style.setProperty('--p', p + '%');
+      if(!out) return;
+      if(r.dataset.gid){ const g = GMAP[r.dataset.gid]; out.textContent = gStr(g, +r.value) + (gUnit(g) ? ' ' + gUnit(g) : ''); }
+      else if(r.dataset.unit === 'time') out.textContent = fmtTime(+r.value);
+      else out.textContent = (+r.value).toString() + ' ' + r.dataset.unit;
+      const rl = root.querySelector('#ratio-line'); if(rl && root.querySelector('#p-dose')) rl.innerHTML = 'Ratio <b>' + ratio(+root.querySelector('#p-dose').value, +root.querySelector('#p-water').value) + '</b>';
+    };
+    r.addEventListener('input', upd); upd();
+  });
+}
+function recipeSliders(p, setup){
+  return `<div class="grp">
+    ${srow('p-dose','Coffee', p.dose ?? 15, 8, 40, 0.5, 'g')}
+    ${srow('p-water','Water', p.water ?? 250, 100, 650, 5, 'g')}
+    <div class="ratio-line" id="ratio-line"></div>
+    ${grindRow(p.grind, setup)}
+    ${srow('p-temp','Water temp', p.temp ?? 94, 80, 100, 1, '°C')}
+    ${srow('p-bw','Bloom water', p.bloomWater ?? 45, 0, 120, 5, 'g')}
+    ${srow('p-bt','Bloom time', p.bloomTime ?? 45, 0, 90, 5, 's')}
+  </div>`;
+}
+function readRecipe(){ return { dose: num($('#p-dose').value), water: num($('#p-water').value), grind: readGrind(), temp: num($('#p-temp').value), bloomWater: num($('#p-bw').value), bloomTime: num($('#p-bt').value) }; }
+
+/* ---------- timer ---------- */
+const T = { start:0, acc:0, run:false, raf:0 };
+function loop(){ paintTimer(); if(T.run) T.raf = requestAnimationFrame(loop); }
+function stopTimer(reset){ if(T.run){ T.acc += Date.now() - T.start; T.run = false; } cancelAnimationFrame(T.raf); if(reset) T.acc = 0; document.body.classList.remove('timing'); }
+const tNow = () => T.acc + (T.run ? Date.now() - T.start : 0);
+const R = 124, CIRC = 2 * Math.PI * R;
+function paintTimer(){
+  const c = $('#clock'); if(!c) return paintDock();
+  const ms = tNow(), s = ms / 1000, p = curPlan(), target = parseTime(p.targetTime) || 180;
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60), t = Math.floor((ms % 1000) / 100);
+  const ch = `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}<small>.${t}</small>`;
+  if(c.dataset.v !== ch){ c.innerHTML = ch; c.dataset.v = ch; }
+  c.classList.toggle('paused', !T.run && s > 0);
+  const fg = $('#ring-fg');
+  fg.style.strokeDashoffset = CIRC * (1 - Math.min(1, s / target));
+  fg.classList.toggle('zero', s === 0);
+  const pours = pourPlan(p), started = T.run || s > 0;
+  let cur = 0; pours.forEach((x, i) => { if(s >= x.at) cur = i; });
+  document.querySelectorAll('.pour').forEach((el, i) => {
+    const x = pours[i], nx = pours[i + 1]; let f = 0;
+    if(started && x){ if(i < cur) f = 1; else if(i === cur){ const end = nx ? nx.at : Math.max(x.at + 30, target); f = Math.min(1, (s - x.at) / Math.max(1, end - x.at)); } }
+    const fl = el.querySelector('.fill'); if(fl) fl.style.transform = `scaleX(${f.toFixed(4)})`;
+    el.classList.toggle('now', started && i === cur); el.classList.toggle('done', started && i < cur);
+  });
+  const x = pours[cur], nx = pours[cur + 1], left = nx ? fmtTime(Math.max(0, Math.ceil(nx.at - s))) : '';
+  let main, sub = '';
+  if(!started){ main = `Start with a <b>${pours[0].g} g</b> bloom, then ${pours.length - 1} pours to <b>${p.water ?? 250} g</b>.`; }
+  else if(!T.run){ main = `Stopped at ${fmtTime(Math.floor(s))}. Log the brew while it’s fresh.`; }
+  else if(cur === 0){ main = `Pour <b>${x.g} g</b> so all the grounds are wet.`; sub = nx ? `Next pour in ${left}` : ''; }
+  else if(nx){ main = `${x.label}: add <b>${x.g} g</b>, up to ${x.total} g.`; sub = `Next pour in ${left}`; }
+  else if(s < target){ main = `Last pour: add <b>${x.g} g</b> to ${x.total} g, then let it draw down.`; sub = `Target ${fmtTime(target)}`; }
+  else { main = `Past your ${fmtTime(target)} target. Stop when the bed is dry.`; }
+  const sm = $('#step-main'), ss = $('#step-sub');
+  if(sm.dataset.v !== main){ const first = !sm.dataset.v; sm.innerHTML = main; sm.dataset.v = main; if(!first) restartAnim(sm, 'in'); }
+  if(ss.textContent !== sub) ss.textContent = sub;
+  const rs = $('#ring-sub'), rt = `target ${fmtTime(target)}`; if(rs.textContent !== rt) rs.textContent = rt;
+  paintDock();
+}
+function paintDock(){
+  const d = $('#dock'); if(tab !== 'brew' || !loaded){ d.classList.add('away'); return; }
+  d.classList.remove('away'); const s = tNow() / 1000;
+  const html = T.run ? `<button class="pill go" data-act="timerToggle">${I.stop}Stop</button>`
+    : s > 0 ? `<button class="pill ghost" data-act="timerReset" aria-label="Reset timer">${I.reset}</button><button class="pill go" data-act="logTimed">Log brew · ${fmtTime(Math.floor(s))}</button>`
+    : `<button class="pill go" data-act="timerToggle">${I.play}Start</button>`;
+  if(d.dataset.html !== html){ d.innerHTML = html; d.dataset.html = html; }
+}
+
+/* ---------- views ---------- */
+function rowBrew(b, withAgain = true){
+  const bean = beanById(b.beanId);
+  return `<div class="cellw"><button class="cell" data-act="brew" data-id="${b.id}">
+      <span class="c-main"><span class="c-title">${esc(bean ? beanLabel(bean) : 'No beans picked')}</span>
+      <span class="c-sub num">${b.dose ?? '–'}/${b.water ?? '–'} · G${esc(b.grind || '–')} · ${b.temp ?? '–'}° · ${fmtTime(b.time)}</span>
+      <span class="c-sub">${esc(fmtDate(b.date))}${b.rating ? ' &nbsp;' + stars(b.rating) : ''}</span></span>
+    </button>${withAgain ? `<button class="again" data-act="again" data-id="${b.id}">Again</button>` : ''}</div>`;
+}
+function noSetupBlock(){
+  return `<div class="sec-h"><span>Get started</span></div><div class="grp">
+    <button class="cell" data-act="addSetup"><span class="c-main"><span class="c-title acc">Add your brewing setup</span><span class="c-sub">Pick your brewer and hand or electric grinder. Grind settings, tips and recipes follow your grinder’s own dial.</span></span>${I.chev}</button></div>`;
+}
+function viewBrew(){
+  const p = curPlan(), st = setupById(p.setupId) || curSetup(), bean = beanById(p.beanId), pours = pourPlan(p);
+  const maxG = Math.max(...pours.map(x => x.g), 1);
+  const last = S.brews[0], tip = last?.advice && !S.prefs.plan ? last.advice : null;
+  const beanOpts = '<option value="">No beans</option>' + S.beans.map(b => `<option value="${b.id}" ${p.beanId === b.id ? 'selected' : ''}>${esc(beanLabel(b))}</option>`).join('');
+  const setupOpts = S.setups.map(s => `<option value="${s.id}" ${st?.id === s.id ? 'selected' : ''}>${esc(setupLabel(s))}</option>`).join('');
+  return `${bootNote ? `<div class="err">${esc(bootNote)}</div>` : ''}
+  <div class="brew-head">
+    <div class="eyebrow">${T.run ? 'Now brewing' : 'Up next'}</div>
+    <label class="picker big"><span>${esc(beanLabel(bean))}</span>${I.down}<select id="plan-bean" aria-label="Beans">${beanOpts}</select></label>
+    ${S.setups.length ? `<label class="picker small">for&nbsp;<b>${esc(setupLabel(st))}</b>${I.down}<select id="plan-setup" aria-label="Setup">${setupOpts}</select></label>` : ''}
+  </div>
+  ${S.setups.length ? '' : noSetupBlock()}
+  <div class="ring-wrap">
+    <svg viewBox="0 0 280 280" aria-hidden="true"><circle cx="140" cy="140" r="${R}" fill="none" stroke="var(--grp2)" stroke-width="16"/>
+    <circle id="ring-fg" class="${tNow() === 0 ? 'zero' : ''}" cx="140" cy="140" r="${R}" fill="none" stroke="var(--accent)" stroke-width="16" stroke-linecap="round" stroke-dasharray="${CIRC}" style="stroke-dashoffset:${CIRC * (1 - Math.min(1, tNow() / 1000 / (parseTime(p.targetTime) || 180)))}"/></svg>
+    <div class="ring-center"><div class="clock" id="clock" role="timer">00:00<small>.0</small></div><div class="ring-sub" id="ring-sub"></div></div>
+  </div>
+  <p class="step" aria-live="polite"><span id="step-main"></span><span id="step-sub" class="num"></span></p>
+  <div class="sec-h"><span>Recipe</span><button class="link" data-act="editPlan">Adjust</button></div>
+  <div class="grp rgrid">
+    <div><small>Coffee</small><span>${p.dose ?? '–'}<i>g</i></span></div>
+    <div><small>Water</small><span>${p.water ?? '–'}<i>g</i></span></div>
+    <div><small>Ratio</small><span>${ratio(p.dose, p.water)}</span></div>
+    <div><small>Grind</small><span>${esc(p.grind || '–')}${p.grind && gUnit(grinderOf(st)) ? `<i>${gUnit(grinderOf(st))}</i>` : ''}</span></div>
+    <div><small>Temp</small><span>${p.temp ?? '–'}<i>°C</i></span></div>
+    <div><small>Bloom</small><span>${p.bloomTime ?? '–'}<i>s</i></span></div>
+  </div>
+  <p class="foot">${esc(p.source || '')}${S.prefs.plan ? ` · <button class="link" data-act="clearPlan" style="font-size:13px">Reset</button>` : ''}</p>
+  ${tip ? `<div class="sec-h"><span>${tip.rule ? 'Quick tip' : 'AI tip'}</span></div><div class="grp tip"><strong>${esc(tip.summary || '')}</strong>${tip.changes?.length ? `<ul>${tip.changes.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}</div>` : ''}
+  <div class="sec-h"><span>Pours</span><span class="num">${p.water ?? 250} g total</span></div>
+  <div class="grp pours">${pours.map(x => `<div class="pour"><div class="pour-top"><span>${x.label}${x.at ? ' · ' + fmtTime(x.at) : ''}</span><b class="num">${x.g} g</b></div><div class="bar" style="width:${Math.max(18, x.g / maxG * 100)}%"><div class="fill"></div></div></div>`).join('')}</div>
+  <button class="link center" data-act="newBrew">Log a brew without the timer</button>`;
+}
+let jseg = 'all';
+function journalBody(){
+  const rated = S.brews.filter(b => b.rating);
+  let body;
+  if(jseg === 'top'){
+    const top = [...rated].filter(b => b.rating >= 4).sort((a,b) => b.rating - a.rating || (b.date||'').localeCompare(a.date||'')).slice(0, 15);
+    const perBean = S.beans.map(bean => rated.filter(b => b.beanId === bean.id).sort((a,b) => b.rating - a.rating || (b.date||'').localeCompare(a.date||''))[0]).filter(Boolean).sort((a,b) => b.rating - a.rating);
+    body = `<div class="sec-h"><span>Top brews · 4★ and up</span></div><div class="grp">${top.length ? top.map(b => rowBrew(b)).join('') : '<div class="empty">Rate a brew 4 or 5 stars and it shows up here.</div>'}</div>
+      <div class="sec-h"><span>Best recipe per bean</span></div><div class="grp">${perBean.length ? perBean.map(b => rowBrew(b)).join('') : '<div class="empty">Your best-rated cup of each bean shows up here.</div>'}</div>`;
+  } else {
+    body = `<div class="sec-h"><span>All brews</span><span>${S.brews.length}</span></div><div class="grp">${S.brews.length ? S.brews.slice(0, 60).map(b => rowBrew(b)).join('') : '<div class="empty">No brews yet. Start the timer on the Brew tab, make a cup, then log it.</div>'}</div>`;
+  }
+  return body;
+}
+function viewJournal(){
+  const rated = S.brews.filter(b => b.rating);
+  const avg = rated.length ? (rated.reduce((a,b) => a + b.rating, 0) / rated.length).toFixed(1) : '–';
+  return `<h1 class="lt">Journal</h1>
+  <div class="seg" data-on="${jseg}" role="tablist"><span class="seg-thumb" aria-hidden="true"></span><button role="tab" aria-selected="${jseg === 'all'}" data-act="seg" data-id="all">All brews</button><button role="tab" aria-selected="${jseg === 'top'}" data-act="seg" data-id="top">Top rated</button></div>
+  <div class="grp stats"><div><b>${S.brews.length}</b><span>Brews</span></div><div><b>${avg}</b><span>Avg rating</span></div><div><b>${S.beans.length}</b><span>Beans</span></div></div>
+  <div id="jbody">${journalBody()}</div>`;
+}
+function viewBeans(){
+  return `<h1 class="lt">Beans</h1>
+  <button class="scan" data-act="scan"><span class="ico">${I.cam}</span><span class="c-main"><span class="c-title" style="font-weight:600">Scan a bag or label</span><span class="c-sub">${window.claude ? 'AI reads it and suggests a recipe for ' + esc(setupLabel(curSetup())) : 'Add a photo of the bag, then fill in the details'}</span></span>${I.chev}</button>
+  <p class="foot" style="padding-top:8px"><button class="link" data-act="pick" style="font-size:13px">Choose a photo from your library</button></p>
+  <div class="sec-h"><span>Your beans</span><button class="link" data-act="addBean">Add by hand</button></div>
+  <div class="grp">${S.beans.length ? S.beans.map(b => {
+    const d = daysOff(b.roastDate), n = S.brews.filter(x => x.beanId === b.id).length;
+    return `<button class="cell" data-act="bean" data-id="${b.id}">
+      ${b.photo ? `<img class="thumb" src="${esc(b.photo)}" alt="">` : `<span class="thumb ph" aria-hidden="true">${esc((b.name||b.origin||'?').slice(0,1).toUpperCase())}</span>`}
+      <span class="c-main"><span class="c-title">${esc(beanLabel(b))}</span>
+      <span class="c-sub">${esc([b.roaster, b.origin, b.process].filter(Boolean).join(' · ') || 'No details yet')}</span>
+      <span class="c-sub">${d != null ? `${d} days off roast · ` : ''}${n} brew${n === 1 ? '' : 's'}</span></span>${I.chev}</button>`; }).join('') : '<div class="empty">No beans yet. Scan the bag you’re brewing now.</div>'}</div>`;
+}
+function viewGear(){
+  const cur = curSetup();
+  return `<h1 class="lt">Gear</h1>
+  ${S.setups.length ? '' : noSetupBlock()}
+  ${S.setups.length ? `<div class="sec-h"><span>Setups</span></div><div class="grp">${S.setups.map(s => `<div class="cellw"><button class="cell" data-act="useSetup" data-id="${s.id}" aria-pressed="${cur?.id === s.id}">
+      <span class="c-main"><span class="c-title">${esc(setupLabel(s))}</span><span class="c-sub">${esc(setupGear(s))}</span></span>
+      ${cur?.id === s.id ? I.check : ''}</button><button class="link" style="padding:0 16px 0 4px" data-act="editSetup" data-id="${s.id}">Edit</button></div>`).join('')}
+    <button class="cell" data-act="addSetup"><span class="c-title acc">Add setup</span></button></div>
+    <p class="foot">Tap a setup to brew with it. Grind sliders, tips and recipes follow the grinder in the setup with the check mark. Everyone who opens this app keeps their own setups and brews.</p>` : ''}
+  <div class="sec-h"><span>Data</span></div>
+  <div class="grp"><div class="cell"><span class="c-main"><span class="c-title">Sync</span></span><span class="c-val">${syncState === 'cloud' ? 'Your Claude account' : syncState === 'local' ? 'This device only' : 'Loading…'}</span></div></div>
+  <p class="foot">${syncState === 'cloud' ? 'Your brews, beans and gear are the same on your iPhone and your Mac.' : syncState === 'local' ? (window.claude ? 'Open this page signed in to Claude to sync between devices.' : 'Saved in this browser on this device. Clearing Safari’s website data removes it.') : ''}</p>`;
+}
+
+let tab = 'brew';
+function render(){
+  const v = $('#view');
+  if(!loaded) v.innerHTML = '<div class="empty" style="margin-top:40vh"><span class="spin"></span>Loading your brews…</div>';
+  else v.innerHTML = tab === 'journal' ? viewJournal() : tab === 'beans' ? viewBeans() : tab === 'gear' ? viewGear() : viewBrew();
+  v.classList.toggle('has-dock', tab === 'brew');
+  document.querySelectorAll('nav a').forEach(a => { if(a.dataset.tab === tab) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  const pb = $('#plan-bean'); if(pb) pb.onchange = e => { const p = curPlan(); setPlan({ ...p, beanId: e.target.value || null }, p.source); };
+  const ps = $('#plan-setup'); if(ps) ps.onchange = e => switchSetup(e.target.value);
+  paintTimer();
+}
+let enterT = 0;
+function animateEnter(){
+  const v = $('#view'); restartAnim(v, 'enter');
+  clearTimeout(enterT); enterT = setTimeout(() => v.classList.remove('enter'), 800);
+  const a = document.querySelector(`nav a[data-tab="${tab}"]`); if(a){ restartAnim(a, 'pop'); }
+}
+function route(){
+  const h = location.hash.slice(1), prev = tab;
+  tab = ['brew','journal','beans','gear'].includes(h) ? h : 'brew';
+  render(); window.scrollTo(0,0);
+  if(prev !== tab && loaded) animateEnter();
+}
+window.addEventListener('hashchange', route);
+function goBrew(){ closeSheet(); if(location.hash !== '#brew') location.hash = 'brew'; else { render(); window.scrollTo(0,0); animateEnter(); } }
+
+/* ---------- plan sheet ---------- */
+function openPlanForm(){
+  const p = curPlan(), st = setupById(p.setupId) || curSetup();
+  openSheet('Adjust recipe', `<form id="plan-form">${recipeSliders(p, st)}
+    <div class="grp" style="margin-top:12px">${srow('p-target','Target time', parseTime(p.targetTime) || 180, 90, 360, 5, 'time')}</div></form>`, { form:'plan-form' });
+  wireSliders($('#sheet-body'));
+  $('#plan-form').onsubmit = e => { e.preventDefault(); setPlan({ ...p, ...readRecipe(), targetTime: fmtTime(+$('#p-target').value) }, 'Adjusted by you'); closeSheet(); };
+}
+
+/* ---------- brew log form ---------- */
+let draftBrew = null;
+function openBrewForm(pre = {}, editId = null){
+  const cur = curSetup();
+  draftBrew = { rating: pre.rating || 0, tags: [...(pre.tags || [])] };
+  const st = setupById(pre.setupId) || cur;
+  const setupOpts = S.setups.map(s => `<option value="${s.id}" ${st?.id === s.id ? 'selected' : ''}>${esc(setupLabel(s))}</option>`).join('') || '<option value="">None yet</option>';
+  const beanOpts = '<option value="">None</option>' + S.beans.map(b => `<option value="${b.id}" ${pre.beanId === b.id ? 'selected' : ''}>${esc(beanLabel(b))}</option>`).join('');
+  openSheet(editId ? 'Edit brew' : 'Log brew', `<form id="brew-form">
+    <div class="grp">
+      ${frow('f-date','Date', pre.date ? localDT(new Date(pre.date)) : localDT(), 'type="datetime-local"')}
+      <div class="frow"><label for="f-setup">Setup</label><select id="f-setup">${setupOpts}</select></div>
+      <div class="frow"><label for="f-bean">Beans</label><select id="f-bean">${beanOpts}</select></div>
+      ${frow('f-time','Brew time', pre.time != null ? fmtTime(pre.time) : '', 'inputmode="decimal" placeholder="3:00"')}
+    </div>
+    <div class="sec-h"><span>Recipe</span></div>
+    ${recipeSliders(pre, st)}
+    <div class="sec-h"><span>Rating</span></div>
+    <div class="grp"><div class="rating" id="f-rating">${[1,2,3,4,5].map(i => `<button type="button" data-act="rate" data-id="${i}" aria-label="${i} star${i>1?'s':''}" class="${i <= draftBrew.rating ? 'on' : ''}">★</button>`).join('')}</div></div>
+    <div class="sec-h"><span>How it tasted</span></div>
+    <div class="grp"><div class="pick" id="f-tags">${TAGS.map(t => `<button type="button" data-act="tag" data-id="${t}" class="${draftBrew.tags.includes(t) ? 'on' : ''}" aria-pressed="${draftBrew.tags.includes(t)}">${t}</button>`).join('')}</div>
+      <div class="ta"><textarea id="f-notes" aria-label="Tasting notes" placeholder="Tasting notes: stone fruit, tea-like, sharp finish…">${esc(pre.notes ?? '')}</textarea></div></div>
+    <div class="btn-row"><button class="btn go" type="submit">${editId ? 'Save changes' : 'Save brew'}</button></div>
+  </form>`, { form:'brew-form' });
+  wireSliders($('#sheet-body'));
+  $('#f-setup').onchange = e => { swapGrindRow(readGrind(), setupById(e.target.value)); };
+  $('#brew-form').onsubmit = e => {
+    e.preventDefault();
+    const old = editId ? brewById(editId) : null;
+    const b = { ...(old || {}), id: editId || newId('brew'), kind:'brew',
+      date: new Date($('#f-date').value || Date.now()).toISOString(),
+      setupId: $('#f-setup').value || null, beanId: $('#f-bean').value || null, ...readRecipe(),
+      time: parseTime($('#f-time').value), rating: draftBrew.rating, tags: draftBrew.tags, notes: $('#f-notes').value.trim() };
+    const strip = x => JSON.stringify({ ...x, advice:null });
+    if(!old || strip(old) !== strip(b)) b.advice = null;
+    save(b);
+    if(!old){ stopTimer(true); if(S.prefs.plan) save({ ...S.prefs, plan:null }); }
+    openBrewDetail(b.id, !old);
+  };
+}
+
+function adviceBlock(b){
+  const a = b.advice; if(!a) return '';
+  const n = a.next || {};
+  return `<div class="grp tip"><strong>${esc(a.summary || '')}</strong>${a.changes?.length ? `<ul>${a.changes.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}</div>
+    <div class="grp rgrid" style="margin-top:8px">
+      <div><small>Coffee</small><span>${n.dose ?? '–'}<i>g</i></span></div><div><small>Water</small><span>${n.water ?? '–'}<i>g</i></span></div><div><small>Ratio</small><span>${ratio(n.dose, n.water)}</span></div>
+      <div><small>Grind</small><span>${esc(n.grind ?? '–')}</span></div><div><small>Temp</small><span>${n.temp ?? '–'}<i>°C</i></span></div><div><small>Target</small><span>${esc(n.targetTime ?? '–')}</span></div></div>
+    ${a.why ? `<p class="foot">${esc(a.why)}</p>` : ''}
+    <div class="btn-row"><button class="btn go" data-act="useAdvice" data-id="${b.id}">Brew with this</button><button class="btn" data-act="advise" data-id="${b.id}">Ask again</button></div>`;
+}
+function openBrewDetail(id, justSaved){
+  const b = brewById(id); if(!b) return closeSheet();
+  const bean = beanById(b.beanId), st = setupById(b.setupId);
+  openSheet(justSaved ? 'Saved' : 'Brew', `
+    <h2 class="d-title">${esc(bean ? beanLabel(bean) : 'No beans picked')}</h2>
+    <p class="d-sub">${esc(fmtDate(b.date))} · ${esc(setupLabel(st))}${b.rating ? ' · ' + stars(b.rating) : ''}</p>
+    <div class="sec-h"><span>Recipe</span></div>
+    <div class="grp rgrid">
+      <div><small>Coffee</small><span>${b.dose ?? '–'}<i>g</i></span></div><div><small>Water</small><span>${b.water ?? '–'}<i>g</i></span></div><div><small>Ratio</small><span>${ratio(b.dose,b.water)}</span></div>
+      <div><small>Grind</small><span>${esc(b.grind || '–')}</span></div><div><small>Temp</small><span>${b.temp ?? '–'}<i>°C</i></span></div><div><small>Time</small><span>${fmtTime(b.time)}</span></div>
+    </div>
+    <p class="foot">Bloom ${b.bloomWater ?? '–'} g for ${b.bloomTime ?? '–'} s</p>
+    ${b.tags?.length || b.notes ? `<div class="sec-h"><span>Tasting</span></div><div class="grp">${b.tags?.length ? `<div class="tags">${b.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}${b.notes ? `<p style="margin:0;padding:12px 16px">${esc(b.notes)}</p>` : '<div style="height:12px"></div>'}</div>` : ''}
+    <div class="sec-h"><span>Next brew</span></div>
+    <div id="advice">${b.advice ? adviceBlock(b) : `<div class="grp tip"><span class="note">Get settings for your next cup, based on this brew${bean ? ' and your earlier brews of these beans' : ''}.</span></div><div class="btn-row"><button class="btn go" data-act="advise" data-id="${b.id}">Suggest next settings</button></div>`}</div>
+    <div class="sec-h"><span></span></div>
+    <div class="grp">
+      <button class="cell" data-act="again" data-id="${b.id}"><span class="c-title acc">Brew this again</span></button>
+      <button class="cell" data-act="editBrew" data-id="${b.id}"><span class="c-title">Edit brew</span></button>
+      <button class="cell" data-act="delBrew" data-id="${b.id}"><span class="c-title" style="color:var(--red)">Delete brew</span></button>
+    </div>`);
+}
+async function getAdvice(id){
+  const b = brewById(id); if(!b) return;
+  const st = setupById(b.setupId) || curSetup(), bean = beanById(b.beanId);
+  const history = S.brews.filter(x => b.beanId ? x.beanId === b.beanId : x.id === b.id).filter(x => (x.date||'') <= (b.date||'')).slice(0, 8);
+  const box = $('#advice'); if(box) box.innerHTML = '<div class="grp tip"><span class="note"><span class="spin"></span>Reading your notes…</span></div>';
+  let advice;
+  try { advice = await askJSON(advicePrompt(history, bean, st), { modelTier:'default' }); advice.at = Date.now(); }
+  catch(e){
+    if(e && (e.code === 'unavailable' || e.code === 'not_granted')) advice = ruleAdvice(b, st);
+    else { if(box) box.innerHTML = `<div class="err">${esc(errMsg(e))}</div><div class="btn-row"><button class="btn go" data-act="advise" data-id="${b.id}">Try again</button></div>`; return; }
+  }
+  await save({ ...brewById(id), advice });
+  if(sheetOpen()) openBrewDetail(id);
+}
+
+/* ---------- beans ---------- */
+let draftBean = null;
+function openBeanForm(pre = {}, editId = null, note = ''){
+  draftBean = { photo: pre.photo || null, recipes: pre.recipes || {} };
+  const roastOpts = '<option value="">Not stated</option>' + ROASTS.map(r => `<option ${pre.roastLevel === r ? 'selected' : ''}>${r}</option>`).join('');
+  openSheet(editId ? 'Edit beans' : 'New beans', `<form id="bean-form">
+    ${note ? `<div class="err">${esc(note)}</div>` : ''}
+    ${pre.photo ? `<img class="hero" src="${esc(pre.photo)}" alt="Photo of the bag">` : ''}
+    ${pre.fromScan ? '<p class="foot">Read from your photo. Check the details, then save.</p>' : ''}
+    <div class="sec-h"><span>Coffee</span></div>
+    <div class="grp">
+      ${frow('b-name','Name', pre.name, 'placeholder="e.g. Kochere"')}
+      ${frow('b-roaster','Roaster', pre.roaster, 'placeholder="Roaster"')}
+      ${frow('b-origin','Origin', pre.origin, 'placeholder="Country, region"')}
+      ${frow('b-process','Process', pre.process, 'list="procs" placeholder="Washed"')}
+      <div class="frow"><label for="b-roast">Roast level</label><select id="b-roast">${roastOpts}</select></div>
+      ${frow('b-date','Roast date', pre.roastDate, 'type="date"')}
+    </div>
+    <datalist id="procs"><option>Washed</option><option>Natural</option><option>Honey</option><option>Anaerobic</option><option>Wet-hulled</option></datalist>
+    <p class="foot">Leave the roast date empty if it isn’t on the bag.</p>
+    <div class="sec-h"><span>More</span></div>
+    <div class="grp">
+      ${frow('b-var','Varietal', pre.varietal, 'placeholder="Optional"')}
+      ${frow('b-alt','Altitude', pre.altitude, 'placeholder="Optional"')}
+      ${frow('b-flav','On the bag', pre.flavourNotes, 'placeholder="Flavour notes"')}
+      <div class="ta"><textarea id="b-notes" aria-label="Your notes" placeholder="Your notes">${esc(pre.notes ?? '')}</textarea></div>
+    </div>
+    <div class="btn-row"><button class="btn go" type="submit">${editId ? 'Save changes' : 'Save beans'}</button></div>
+  </form>`, { form:'bean-form' });
+  $('#bean-form').onsubmit = e => {
+    e.preventDefault();
+    const old = editId ? beanById(editId) : null;
+    const b = { ...(old || {}), id: editId || newId('bean'), kind:'bean', created: old?.created || Date.now(),
+      name: $('#b-name').value.trim(), roaster: $('#b-roaster').value.trim(), origin: $('#b-origin').value.trim(),
+      process: $('#b-process').value.trim(), roastLevel: $('#b-roast').value, roastDate: $('#b-date').value,
+      varietal: $('#b-var').value.trim(), altitude: $('#b-alt').value.trim(), flavourNotes: $('#b-flav').value.trim(),
+      notes: $('#b-notes').value.trim(), photo: draftBean.photo, recipes: draftBean.recipes };
+    save(b); openBeanDetail(b.id);
+  };
+}
+function openBeanDetail(id){
+  const b = beanById(id); if(!b) return closeSheet();
+  const st = curSetup(), r = st && b.recipes?.[st.id];
+  const brews = S.brews.filter(x => x.beanId === id), d = daysOff(b.roastDate);
+  const best = [...brews].filter(x => x.rating).sort((a,c) => c.rating - a.rating)[0];
+  const info = [['Process', b.process], ['Roast', b.roastLevel], ['Roast date', b.roastDate ? b.roastDate + (d != null ? ` · ${d} d` : '') : 'Unknown'], ['Varietal', b.varietal], ['Altitude', b.altitude], ['On the bag', b.flavourNotes]].filter(x => x[1]);
+  openSheet('Beans', `
+    ${b.photo ? `<img class="hero" src="${esc(b.photo)}" alt="Photo of the bag">` : ''}
+    <h2 class="d-title">${esc(beanLabel(b))}</h2>
+    <p class="d-sub">${esc([b.roaster, b.origin].filter(Boolean).join(' · ') || ' ')}</p>
+    ${info.length ? `<div class="sec-h"><span>Details</span></div><div class="grp dgrid">${info.map(x => `<div><small>${x[0]}</small><span>${esc(x[1])}</span></div>`).join('')}</div>` : ''}
+    ${b.notes ? `<p class="foot">${esc(b.notes)}</p>` : ''}
+    <div class="sec-h"><span>Recipe for ${esc(setupLabel(st))}</span></div>
+    <div id="recipe">${st ? (r ? `<div class="grp rgrid">
+        <div><small>Coffee</small><span>${r.dose ?? '–'}<i>g</i></span></div><div><small>Water</small><span>${r.water ?? '–'}<i>g</i></span></div><div><small>Ratio</small><span>${ratio(r.dose, r.water)}</span></div>
+        <div><small>Grind</small><span>${esc(r.grind ?? '–')}</span></div><div><small>Temp</small><span>${r.temp ?? '–'}<i>°C</i></span></div><div><small>Target</small><span>${esc(r.targetTime ?? '–')}</span></div></div>
+        ${r.pours || r.why ? `<p class="foot">${esc([r.pours, r.why].filter(Boolean).join(' '))}</p>` : ''}`
+      : '<div class="grp tip"><span class="note">No recipe for this setup yet.</span></div>') : '<div class="grp tip"><span class="note">Add a setup in Gear first.</span></div>'}</div>
+    ${st ? `<div class="btn-row">${r ? `<button class="btn go" data-act="brewBean" data-id="${b.id}">Brew with this</button>` : ''}<button class="btn ${r ? '' : 'go'}" data-act="beanRecipe" data-id="${b.id}">${r ? 'New suggestion' : 'Suggest a recipe'}</button></div>` : ''}
+    ${best ? `<div class="sec-h"><span>Best cup so far</span></div><div class="grp">${rowBrew(best)}</div>` : ''}
+    <div class="sec-h"><span>Brews</span><span>${brews.length}</span></div>
+    <div class="grp">${brews.length ? brews.slice(0, 10).map(x => rowBrew(x, false)).join('') : '<div class="empty">No brews with these beans yet.</div>'}</div>
+    <div class="sec-h"><span></span></div>
+    <div class="grp"><button class="cell" data-act="editBean" data-id="${b.id}"><span class="c-title">Edit beans</span></button><button class="cell" data-act="delBean" data-id="${b.id}"><span class="c-title" style="color:var(--red)">Delete beans</span></button></div>`);
+}
+async function beanRecipe(id){
+  const b = beanById(id), st = curSetup(); if(!b || !st) return;
+  const box = $('#recipe'); if(box) box.innerHTML = '<div class="grp tip"><span class="note"><span class="spin"></span>Working out a recipe…</span></div>';
+  try {
+    const r = await askJSON(recipePrompt(b, st), { modelTier:'default' }); r.at = Date.now();
+    await save({ ...beanById(id), recipes: { ...(beanById(id).recipes || {}), [st.id]: r } });
+    if(sheetOpen()) openBeanDetail(id);
+  } catch(e){ if(box) box.innerHTML = `<div class="err">${esc(errMsg(e))}</div>`; }
+}
+let scanJob = null;
+async function onPhoto(file){
+  const st = curSetup(), prevUrl = URL.createObjectURL(file);
+  scanJob = null;
+  openSheet('New beans', `<img class="hero" src="${prevUrl}" alt="Your photo"><div id="scan-box" style="margin-top:12px"><div class="grp tip"><span class="note"><span class="spin"></span>Preparing your photo…</span></div></div>`);
+  try {
+    const img = await loadImg(file);
+    const thumb = drawTo(img, 480).toDataURL('image/jpeg', 0.72);
+    const big = await toBlob(drawTo(img, 1400), 0.85);
+    if(!big) throw { message:'That photo couldn’t be prepared. Take a new one with the camera.' };
+    scanJob = { thumb, big, st };
+    const s = AI || await aiReady;
+    let note = '';
+    if(!s) note = errMsg({ code:'unavailable' });
+    else if(typeof s.limits === 'function'){ const lim = await s.limits().catch(() => null); if(lim && lim.images === false) note = 'Photo reading isn’t available on this account. Fill in the details by hand.'; }
+    showScanBox(note, !note);
+  } catch(e){
+    if(!sheetOpen()) return;
+    const box = $('#scan-box'); if(!box) return;
+    box.innerHTML = `<div class="err">${esc(e && e.message && !/^That photo/.test(e.message) ? e.message : 'That photo couldn’t be opened. iPhone photos in HEIC format don’t open in every browser: take a new photo with the camera, or choose a JPEG.')}</div><div class="btn-row"><button class="btn go" data-act="scan">Take a new photo</button><button class="btn" data-act="addBean">Fill in by hand</button></div>`;
+  }
+}
+function showScanBox(note, canRead){
+  const box = $('#scan-box'); if(!box || !scanJob) return;
+  const st = scanJob.st;
+  box.innerHTML = `${note ? `<div class="err">${esc(note)}</div>` : `<div class="grp tip"><span class="note">AI reads the label${st ? ' and suggests a starting recipe for ' + esc(setupLabel(st)) : ''}. The first time, Claude asks you to allow it.</span></div>`}
+    <div class="btn-row">${canRead ? '<button class="btn go" data-act="readLabel">Read label</button>' : ''}<button class="btn" data-act="scanManual">Fill in by hand</button></div>`;
+}
+function readLabel(btn){
+  const job = scanJob; if(!job) return;
+  if(btn) btn.disabled = true;
+  /* askJSON is called synchronously inside the tap, so Claude's permission prompt can show */
+  const run = askJSON(scanPrompt(job.st), { images:[job.big], modelTier:'default' });
+  const box = $('#scan-box'); if(box) box.innerHTML = '<div class="grp tip"><span class="note"><span class="spin"></span>Reading the label…</span></div>';
+  run.then(res => {
+    if(!sheetOpen() || scanJob !== job) return;
+    const bean = res.bean || {};
+    if(bean.roastLevel && !ROASTS.includes(bean.roastLevel)) bean.roastLevel = '';
+    const recipes = job.st && res.recipe ? { [job.st.id]: { ...res.recipe, at: Date.now() } } : {};
+    openBeanForm({ ...bean, photo: job.thumb, recipes, fromScan:true });
+  }).catch(e => {
+    if(!sheetOpen() || scanJob !== job) return;
+    showScanBox(errMsg(e) + (e && e.code && !['unavailable','not_granted','rate_limited'].includes(e.code) ? ` (${e.code})` : ''), e?.code !== 'unavailable');
+  });
+}
+
+/* ---------- setups ---------- */
+const BREWERS = ['Hario V60','Kalita Wave 155','Kalita Wave 185','Origami Dripper','Chemex','April Brewer','Orea','Hario Switch','Clever Dripper','Cafec Flower Dripper','Timemore Crystal Eye','Melitta','AeroPress'];
+const KETTLES = ['Fellow Stagg EKG','Fellow Stagg EKG Pro','Fellow Corvo EKG','Brewista Artisan','Hario Buono','Hario V60 Power Kettle','Timemore Fish Smart','Bonavita Variable Temperature','Stovetop gooseneck'];
+function grinderOptions(type, sel){
+  const groups = {};
+  GRINDERS.filter(g => g.type === type).forEach(g => (groups[g.brand] = groups[g.brand] || []).push(g));
+  return Object.keys(groups).sort((a,b) => a.localeCompare(b)).map(b => `<optgroup label="${esc(b)}">${groups[b].map(g => `<option value="${g.id}" ${g.id === sel ? 'selected' : ''}>${esc(b + ' ' + g.model)}</option>`).join('')}</optgroup>`).join('')
+    + `<option value="other" ${sel === 'other' ? 'selected' : ''}>Other grinder…</option>`;
+}
+function grinderInfo(g){
+  if(!g) return 'Type your grinder’s name. Grind is then entered as free text, and tips describe the grind in words.';
+  const how = g.kind === 'text' ? `You type the setting as ${g.unit}.` : g.kind === 'ode' ? 'Slider follows the dial: 4, 4.1, 4.2, 5.' : g.kind === 'rot' ? 'Slider follows rotation.number.tick.' : `Slider in ${g.unit === 'setting' ? 'dial settings' : g.unit}.`;
+  return `${g.type === 'hand' ? 'Hand grinder' : 'Electric grinder'}. ${how} ${gHint(g)}.`;
+}
+let setupType = 'hand';
+function openSetupForm(pre = {}, editId = null){
+  const matched = grinderOf(pre);
+  let sel = matched ? matched.id : (pre.grinder ? 'other' : null);
+  setupType = matched ? matched.type : (pre.grinderType || 'hand');
+  if(!sel) sel = GRINDERS.find(g => g.type === setupType).id;
+  openSheet(editId ? 'Edit setup' : 'New setup', `<form id="setup-form">
+    <div class="grp" style="margin-top:12px">
+      ${frow('s-name','Name', pre.name, 'placeholder="Morning V60"')}
+      ${frow('s-brewer','Brewer', pre.brewer, 'list="brewers" placeholder="Hario V60"')}
+    </div>
+    <datalist id="brewers">${BREWERS.map(b => `<option>${esc(b)}</option>`).join('')}</datalist>
+    <datalist id="kettles">${KETTLES.map(b => `<option>${esc(b)}</option>`).join('')}</datalist>
+    <div class="sec-h"><span>Grinder</span></div>
+    <div class="seg" id="gtype" data-on="${setupType === 'electric' ? 'top' : 'all'}" role="tablist"><span class="seg-thumb" aria-hidden="true"></span>
+      <button type="button" role="tab" aria-selected="${setupType === 'hand'}" data-act="gtype" data-id="hand">Hand</button>
+      <button type="button" role="tab" aria-selected="${setupType === 'electric'}" data-act="gtype" data-id="electric">Electric</button></div>
+    <div class="grp">
+      <div class="frow"><label for="s-grinder">Model</label><select id="s-grinder">${grinderOptions(setupType, sel)}</select></div>
+      <div class="frow" id="s-other-row" ${sel === 'other' ? '' : 'hidden'}><label for="s-grinder-other">Name</label><input id="s-grinder-other" value="${esc(sel === 'other' ? pre.grinder : '')}" placeholder="Brand and model"></div>
+    </div>
+    <p class="foot" id="s-ginfo">${esc(grinderInfo(GMAP[sel]))}</p>
+    <div class="sec-h"><span>Kettle and filter</span></div>
+    <div class="grp">
+      ${frow('s-kettle','Kettle', pre.kettle, 'list="kettles" placeholder="Fellow Stagg EKG"')}
+      ${frow('s-filter','Filter', pre.filter, 'placeholder="Paper, tabbed"')}
+      <div class="ta"><textarea id="s-notes" aria-label="Notes" placeholder="Water, scale, anything that matters">${esc(pre.notes ?? '')}</textarea></div>
+    </div>
+    <p class="foot">Grind ranges come from the Honest Coffee Guide grind chart. They’re a starting point, since burrs and beans vary.</p>
+    ${editId ? `<div class="grp" style="margin-top:20px"><button class="cell" type="button" data-act="delSetup" data-id="${editId}"><span class="c-title" style="color:var(--red)">Delete setup</span></button></div>` : ''}
+  </form>`, { form:'setup-form' });
+  $('#s-grinder').onchange = onGrinderPick;
+  $('#setup-form').onsubmit = e => {
+    e.preventDefault();
+    const old = editId ? setupById(editId) : null, v = $('#s-grinder').value, g = GMAP[v];
+    const other = $('#s-grinder-other').value.trim();
+    const s = { ...(old || {}), id: editId || newId('setup'), kind:'setup', created: old?.created || Date.now(),
+      name: $('#s-name').value.trim(), brewer: $('#s-brewer').value.trim(),
+      grinderId: g ? g.id : null, grinder: g ? gName(g) : other, grinderType: g ? g.type : setupType,
+      kettle: $('#s-kettle').value.trim(), filter: $('#s-filter').value.trim(), notes: $('#s-notes').value.trim() };
+    save(s);
+    if(!S.prefs.setupId || !setupById(S.prefs.setupId)) switchSetup(s.id);
+    else if(S.prefs.setupId === s.id && old && old.grinderId !== s.grinderId) switchSetup(s.id);
+    closeSheet();
+  };
+}
+function onGrinderPick(){
+  const v = $('#s-grinder').value, info = $('#s-ginfo');
+  $('#s-other-row').hidden = v !== 'other';
+  info.textContent = grinderInfo(GMAP[v]); restartAnim(info, 'swapin');
+  if(v === 'other') setTimeout(() => $('#s-grinder-other').focus(), 50);
+}
+function switchSetup(id){
+  const st = setupById(id), p = curPlan(), g = grinderOf(st);
+  const grind = g && g.kind !== 'text' && gIdx(g, p.grind) == null ? gStart(st) : p.grind;
+  save({ ...S.prefs, setupId:id, plan: { ...p, setupId:id, grind } });
+}
+
+/* ---------- actions ---------- */
+function armDelete(btn, fn){
+  if(btn.dataset.armed){ fn(); return; }
+  btn.dataset.armed = '1'; const t = btn.querySelector('.c-title') || btn; const old = t.textContent; t.textContent = 'Tap again to delete';
+  setTimeout(() => { if(btn.isConnected){ delete btn.dataset.armed; t.textContent = old; } }, 3000);
+}
+const ACT = {
+  timerToggle(){
+    if(T.run) stopTimer(false);
+    else { T.start = Date.now(); T.run = true; document.body.classList.add('timing'); restartAnim($('.ring-wrap'), 'kick'); T.raf = requestAnimationFrame(loop); }
+    const e = document.querySelector('.eyebrow'); if(e) e.textContent = T.run ? 'Now brewing' : 'Up next'; paintTimer(); },
+  timerReset(){ stopTimer(true); restartAnim($('.ring-wrap'), 'kick'); paintTimer(); },
+  logTimed(){ openBrewForm({ ...curPlan(), time: Math.round(tNow()/1000) }); },
+  newBrew(){ openBrewForm({ ...curPlan(), time: tNow() > 10000 ? Math.round(tNow()/1000) : null }); },
+  again(id){ const b = brewById(id) || S.brews[0]; if(!b) return; setPlan({ ...brewFrom(b), targetTime: b.time ? fmtTime(b.time) : '3:00' }, 'Brewing again: ' + fmtDate(b.date)); goBrew(); },
+  editPlan(){ openPlanForm(); },
+  clearPlan(){ save({ ...S.prefs, plan:null }); },
+  seg(id){
+    if(jseg === id) return; jseg = id;
+    const s = $('.seg'); if(!s) return render();
+    s.dataset.on = id; s.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.id === id)));
+    const jb = $('#jbody'); jb.innerHTML = journalBody(); restartAnim(jb, 'swap'); },
+  brew(id){ openBrewDetail(id); },
+  editBrew(id){ const b = brewById(id); if(b) openBrewForm(b, id); },
+  delBrew(id, btn){ armDelete(btn, () => { remove('brew', id); closeSheet(); }); },
+  advise(id){ getAdvice(id); },
+  useAdvice(id){ const b = brewById(id); if(!b?.advice) return; const n = b.advice.next || {};
+    setPlan({ setupId:b.setupId, beanId:b.beanId, dose:n.dose ?? b.dose, water:n.water ?? b.water, grind:n.grind ?? b.grind, temp:n.temp ?? b.temp, bloomWater:n.bloomWater ?? b.bloomWater, bloomTime:n.bloomTime ?? b.bloomTime, targetTime:n.targetTime || '3:00' }, b.advice.rule ? 'Quick tip from your notes' : 'AI suggestion from your notes'); goBrew(); },
+  rate(i, btn){ draftBrew.rating = draftBrew.rating === +i ? 0 : +i; document.querySelectorAll('#f-rating button').forEach((b, k) => { const on = k < draftBrew.rating; if(on && !b.classList.contains('on')) setTimeout(() => restartAnim(b, 'pop'), k * 35); b.classList.toggle('on', on); }); },
+  tag(t, btn){ const on = draftBrew.tags.includes(t); draftBrew.tags = on ? draftBrew.tags.filter(x => x !== t) : [...draftBrew.tags, t]; btn.classList.toggle('on', !on); btn.setAttribute('aria-pressed', String(!on)); },
+  scan(){ const c = $('#cam'); c.value = ''; c.click(); },
+  pick(){ const c = $('#pick'); c.value = ''; c.click(); },
+  readLabel(id, btn){ readLabel(btn); },
+  scanManual(){ const j = scanJob; openBeanForm(j ? { photo: j.thumb } : {}); },
+  addBean(){ openBeanForm({}); },
+  bean(id){ openBeanDetail(id); },
+  editBean(id){ const b = beanById(id); if(b) openBeanForm(b, id); },
+  delBean(id, btn){ armDelete(btn, () => { remove('bean', id); closeSheet(); }); },
+  beanRecipe(id){ beanRecipe(id); },
+  brewBean(id){ const b = beanById(id), st = curSetup(), r = st && b?.recipes?.[st.id]; if(!r) return;
+    setPlan({ setupId: st.id, beanId: id, dose:r.dose, water:r.water, grind:r.grind, temp:r.temp, bloomWater:r.bloomWater, bloomTime:r.bloomTime, targetTime:r.targetTime || '3:00' }, 'Suggested recipe for ' + beanLabel(b)); goBrew(); },
+  addSetup(){ openSetupForm({}); },
+  editSetup(id){ const s = setupById(id); if(s) openSetupForm(s, id); },
+  useSetup(id){ switchSetup(id); },
+  gtype(t){
+    if(setupType === t) return; setupType = t;
+    const s = $('#gtype'); s.dataset.on = t === 'electric' ? 'top' : 'all'; s.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.id === t)));
+    const sel = $('#s-grinder'), cur = sel.value; sel.innerHTML = grinderOptions(t, cur === 'other' ? 'other' : GRINDERS.find(g => g.type === t).id); onGrinderPick(); },
+  delSetup(id, btn){ armDelete(btn, () => { remove('setup', id); if(S.prefs.setupId === id) save({ ...S.prefs, setupId: S.setups[0]?.id || null }); closeSheet(); }); }
+};
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if(!b || b.disabled) return;
+  const f = ACT[b.dataset.act]; if(!f) return;
+  e.preventDefault(); f(b.dataset.id, b, e);
+});
+$('#cam').addEventListener('change', e => { const f = e.target.files?.[0]; if(f) onPhoto(f); });
+$('#pick').addEventListener('change', e => { const f = e.target.files?.[0]; if(f) onPhoto(f); });
+
+/* ---------- boot ---------- */
+route();
+(async () => {
+  loadTimer = setTimeout(() => { if(!loaded) fallBack('Couldn’t reach your synced data. Saving on this device for now.'); }, 10000);
+  const [db, user] = await Promise.all([use('db'), use('user')]);
+  if(fellBack) return;
+  if(db && user){ try { const cs = await cloudStore(db, user); if(cs){ store = cs; cs.start(); return; } } catch(e){} }
+  clearTimeout(loadTimer); fallBack('');
+})();
+</script>
+</body>
+</html>
