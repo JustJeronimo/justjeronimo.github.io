@@ -731,7 +731,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.12 · 17 Nov 2026';
+const APP_VERSION = '1.13 · 17 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -1013,26 +1013,40 @@ const SFX = (() => {
     bell:   { len:1.6,  attack:.003, noise:.4, noiseAmp:.15, modes:[[880,.75,1],[882.6,.7,.6],[2428,.32,.42],[4752,.16,.22],[7858,.07,.1]], peak:.8 },
     bellLo: { len:1.1,  attack:.003, noise:.4, noiseAmp:.15, modes:[[587,.45,1],[589,.42,.5],[1620,.2,.35],[3170,.1,.15]], peak:.8 }
   };
+  // iOS only lets audio start inside touchend/click (not touchstart/pointerdown), and plays Web Audio
+  // through the ringer channel unless the audio session is "playback". So: unlock on those events,
+  // prime with a silent buffer, and keep listening until the context is really running.
+  let silentOK = true; try { silentOK = localStorage.getItem('drawdown-sound-silent') !== 'off'; } catch(e){}
+  function session(){ try { if(navigator.audioSession) navigator.audioSession.type = on && silentOK ? 'playback' : 'ambient'; } catch(e){} }
   function unlock(){
     if(!on) return;
     try {
-      if(!ctx){ ctx = new (window.AudioContext || window.webkitAudioContext)();
+      session();
+      if(!ctx){ ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint:'interactive' });
         const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 3; comp.attack.value = .002; comp.release.value = .08;
         const warm = ctx.createBiquadFilter(); warm.type = 'highshelf'; warm.frequency.value = 7000; warm.gain.value = -4;
         out = ctx.createGain(); out.gain.value = .9; out.connect(warm).connect(comp).connect(ctx.destination);
         for(const k in SPECS) buf[k] = render(SPECS[k]); }
-      if(ctx.state === 'suspended') ctx.resume();
-    } catch(e){ ctx = null; }
+      if(ctx.state !== 'running'){
+        const p = ctx.resume(); if(p && p.catch) p.catch(() => {});
+        const sb = ctx.createBufferSource(); sb.buffer = ctx.createBuffer(1, 1, 22050); sb.connect(ctx.destination); sb.start(0);
+      }
+    } catch(e){}
   }
-  addEventListener('pointerdown', unlock, { capture:true, passive:true });
+  ['touchend', 'click', 'keydown', 'pointerup'].forEach(ev => addEventListener(ev, unlock, { capture:true, passive:true }));
+  document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible' && ctx && ctx.state !== 'running') ctx.resume().catch?.(() => {}); });
   function play(name, gain = .3, rate = 1, delay = 0, jitter = .03){
-    if(!on || !ctx || ctx.state !== 'running' || !buf[name]) return;
+    if(!on || !ctx || ctx.state === 'closed' || !buf[name]) return;
     const s = ctx.createBufferSource(), g = ctx.createGain();
     s.buffer = buf[name]; s.playbackRate.value = rate * (1 + (Math.random() * 2 - 1) * jitter); g.gain.value = gain;
     s.connect(g).connect(out); s.start(ctx.currentTime + delay);
   }
   return {
     get on(){ return on; },
+    get silent(){ return silentOK; },
+    get state(){ return ctx ? ctx.state : 'none'; },
+    get ready(){ return Object.keys(buf).length; },
+    setSilent(v){ silentOK = v; try { localStorage.setItem('drawdown-sound-silent', v ? 'on' : 'off'); } catch(e){} session(); },
     set(v){ on = v; try { localStorage.setItem('drawdown-sound', v ? 'on' : 'off'); } catch(e){} if(v){ unlock(); setTimeout(() => this.tap(), 30); } },
     // slider detent: f = position 0..1 nudges the pitch; fast drags get softer, lighter clicks
     tick(f = .5){ const n = performance.now(), dt = n - lastTick; if(dt < 16) return; lastTick = n;
@@ -2152,7 +2166,8 @@ function openSettings(){
       <div class="cell"><span class="c-main"><span class="c-title">Version</span></span><span class="c-val num">${esc(APP_VERSION)}</span></div>
       <div class="cell"><span class="c-main"><span class="c-title">Brews saved on</span></span><span class="c-val">${where}</span></div>
       <div class="cell"><span class="c-main"><span class="c-title">Photo reading</span></span><span class="c-val">${AI ? 'AI (Claude)' : 'On your phone'}</span></div>
-      <div class="cell"><span class="c-main"><span class="c-title">Sounds</span><span class="c-sub">Slider ticks, timer, pour chimes. Your mute switch wins.</span></span><button class="link" id="snd" data-act="sound" aria-pressed="${SFX.on}">${SFX.on ? 'On' : 'Off'}</button></div>
+      <div class="cell"><span class="c-main"><span class="c-title">Sounds</span><span class="c-sub">Slider ticks, timer, pour chimes.</span></span><button class="link" id="snd" data-act="sound" aria-pressed="${SFX.on}">${SFX.on ? 'On' : 'Off'}</button></div>
+      <div class="cell"><span class="c-main"><span class="c-title">Play on silent</span><span class="c-sub">Sounds even with the mute switch on. Off: they follow it.</span></span><button class="link" id="snd-s" data-act="soundSilent" aria-pressed="${SFX.silent}">${SFX.silent ? 'On' : 'Off'}</button></div>
     </div>
     <div id="upd" style="margin-top:12px"><div class="btn-row"><button class="btn" data-act="checkUpdate">Check for update</button></div></div>
     <p class="foot">drawdown · ${[[S.brews.length,'brew'],[S.beans.length,'bean'],[S.setups.length,'setup']].map(([n,w]) => n + ' ' + w + (n === 1 ? '' : 's')).join(' · ')}</p>`);
@@ -2183,6 +2198,7 @@ const ACT = {
     else { T.start = Date.now(); T.run = true; document.body.classList.add('timing'); T.raf = requestAnimationFrame(loop); }
     T.run ? SFX.start() : SFX.stop(); flow.step = 3; render(); },
   timerStop(){ stopTimer(false); SFX.stop(); goStep(4); },
+  soundSilent(){ SFX.setSilent(!SFX.silent); const b = $('#snd-s'); if(b){ b.textContent = SFX.silent ? 'On' : 'Off'; b.setAttribute('aria-pressed', String(SFX.silent)); } },
   sound(){ SFX.set(!SFX.on); const b = $('#snd'); if(b){ b.textContent = SFX.on ? 'On' : 'Off'; b.setAttribute('aria-pressed', String(SFX.on)); } },
   timerSkip(){ if(!T.run) return; const L = phases(curPlan()).list, nx = L[phaseIdx(L, tNow() / 1000) + 1]; if(!nx) return; T.acc = nx.at * 1000; T.start = Date.now(); paintTimer(); },
   timerReset(){ stopTimer(true); flow.step = 3; render(); },
@@ -2252,7 +2268,7 @@ const ACT = {
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if(!b || b.disabled) return;
   const f = ACT[b.dataset.act]; if(!f) return;
-  e.preventDefault(); if(!['timerToggle','timerStop','sound'].includes(b.dataset.act)) SFX.tap(); f(b.dataset.id, b, e);
+  e.preventDefault(); if(!['timerToggle','timerStop','sound','soundSilent'].includes(b.dataset.act)) SFX.tap(); f(b.dataset.id, b, e);
 });
 $('#cam').addEventListener('change', e => { const f = e.target.files?.[0]; if(f) onPhoto(f); });
 $('#pick').addEventListener('change', e => { const f = e.target.files?.[0]; if(f) onPhoto(f); });
