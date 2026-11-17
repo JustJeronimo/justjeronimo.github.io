@@ -356,6 +356,36 @@ body.sheet-up #dock{opacity:0;pointer-events:none}
   #sheet{opacity:0}
   #sheet.open{opacity:1}
 }
+/* ---------- sliders (DialKit port) ---------- */
+.dk-src{display:none}
+.dk-wrap .srow::before,.dk-wrap .gwrap::before,.dk-wrap .srow + .srow::before{display:none!important}
+.dk,.dk:focus,.dk:focus-visible{border-radius:0!important;outline:none!important}
+.dk:focus-visible{box-shadow:inset 0 0 0 1px rgba(244,242,236,.35)}
+.srow{padding:0;margin:0 0 6px}
+.srow-top{display:none}
+.dk{position:relative;height:52px;background:rgba(244,242,236,.05);overflow:hidden;cursor:pointer;touch-action:pan-y;-webkit-user-select:none;user-select:none;outline:none}
+.dk.band{transition:none}
+.dk:not(.band){transition:width .35s var(--spring-soft),transform .35s var(--spring-soft)}
+.dk-fill{position:absolute;top:0;bottom:0;left:0;background:rgba(244,242,236,.11);transition:background .15s;pointer-events:none}
+.dk.on .dk-fill,.dk:focus-visible .dk-fill{background:rgba(244,242,236,.15)}
+.dk-hash{position:absolute;inset:0;pointer-events:none}
+.dk-hash i{position:absolute;top:50%;width:1px;height:8px;transform:translate(-50%,-50%);background:transparent;transition:background .2s}
+.dk.on .dk-hash i{background:rgba(244,242,236,.15)}
+.dk-handle{position:absolute;top:50%;width:3px;height:22px;background:var(--label);pointer-events:none;opacity:0;transform:translateY(-50%) scaleX(.25);transition:opacity .15s,transform .25s var(--spring-snappy)}
+.dk.on .dk-handle{opacity:.5;transform:translateY(-50%) scaleX(1)}
+.dk.on.drag .dk-handle{opacity:.9}
+.dk.on.dodge .dk-handle{opacity:.1;transform:translateY(-50%) scale(1,.75)}
+.dk-label{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--sec);pointer-events:none;transition:color .15s;white-space:nowrap}
+.dk-val,.dk-in{position:absolute;right:14px;top:50%;transform:translateY(-50%);font:15px var(--mono);color:var(--sec);transition:color .15s;border-bottom:1px solid transparent;padding:4px 0 1px;font-variant-numeric:tabular-nums}
+.dk.on .dk-val,.dk:focus-visible .dk-val,.dk.on .dk-label{color:var(--label)}
+.dk-in{width:6ch;text-align:right;background:transparent;border:0;border-bottom:1px solid var(--label);color:var(--label);border-radius:0;outline:none;font-size:16px}
+.dk-zone{position:absolute;left:0;right:0;bottom:0;height:2px;pointer-events:none}
+.dk-zone span{position:absolute;top:0;bottom:0;background:rgba(244,242,236,.35)}
+.dk-wrap{background:transparent!important}
+.dk-wrap .ratio-line{padding:2px 2px 10px}
+.dk-wrap .ghint{padding:2px 2px 10px}
+.gwrap::before{display:none}
+@media (prefers-reduced-motion:reduce){.dk,.dk-handle{transition:opacity .2s}}
 /* ---------- brew flow (checklist + hero timer) ---------- */
 .fl-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:22px 4px 14px}
 .fl-head .iconbtn{margin-bottom:4px}
@@ -404,7 +434,14 @@ body.sheet-up #dock{opacity:0;pointer-events:none}
 .fl-notes{display:block;width:100%;min-height:76px;margin-top:16px;background:var(--grp);border:0;border-radius:0;color:var(--label);font:300 16px/1.4 var(--font);padding:12px 14px;resize:vertical}
 .fl-notes::placeholder{color:var(--ter)}
 /* hero timer */
-.h-t{font:400 104px/.9 var(--mono);letter-spacing:-.05em;margin:14px 0 0 -6px;font-variant-numeric:tabular-nums}
+.h-t{display:flex;height:1em;line-height:1}
+.rc{display:inline-block;height:1em;overflow:hidden;-webkit-mask-image:linear-gradient(transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(transparent,#000 14%,#000 86%,transparent)}
+.rc-s{display:flex;flex-direction:column;transition:transform .55s var(--spring-snappy);will-change:transform}
+.rc-s i{display:block;height:1em;font-style:normal;text-align:center}
+.rc-x{display:inline-block;height:1em}
+@media (prefers-reduced-motion:reduce){.rc-s{transition:none}}
+
+.h-t{font:400 104px/1 var(--mono);letter-spacing:-.05em;margin:14px 0 0 -6px;font-variant-numeric:tabular-nums;display:flex;height:1em}
 .h-s{font:italic 400 38px/1.02 var(--serif);letter-spacing:-.01em;margin-top:22px}
 .h-u{font-size:14px;color:var(--sec);font-weight:300;margin-top:8px;min-height:20px}
 .h-track{position:relative;height:10px;background:var(--grp3);margin-top:30px;overflow:hidden}
@@ -615,7 +652,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.7 · 17 Nov 2026';
+const APP_VERSION = '1.8 · 17 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -865,10 +902,109 @@ function toastErr(msg){ const d = document.createElement('div'); d.className = '
 
 /* ---------- form widgets ---------- */
 function frow(id, label, val, attrs = ''){ return `<div class="frow"><label for="${id}">${label}</label><input id="${id}" value="${esc(val ?? '')}" ${attrs}></div>`; }
+/* ---------- sliders: a vanilla port of DialKit's slider (Josh Puckett, MIT, github.com/joshpuckett/dialkit) ----------
+   label inside the track, value on the right, fill follows the finger 1:1, rubber band past the ends,
+   tap snaps (to the nearest step, or the nearest tenth if close) with a spring, tap the value to type one.
+   The hidden <input type=range> stays the source of truth so forms read it as before. */
+function dialHTML(id, label, attrs, extra = ''){
+  return `<div class="dk" data-for="${id}" role="slider" tabindex="0" aria-label="${esc(label)}">
+    <div class="dk-hash" aria-hidden="true"></div><div class="dk-fill"></div>${extra}<div class="dk-handle" aria-hidden="true"></div>
+    <span class="dk-label">${label}</span><output class="dk-val" id="${id}-o" for="${id}"></output></div>
+    <input type="range" id="${id}" class="dk-src" tabindex="-1" aria-hidden="true" ${attrs}>`;
+}
 function srow(id, label, val, min, max, step, unit){
   const v = val ?? min;
-  return `<div class="srow"><div class="srow-top"><label for="${id}">${label}</label><output id="${id}-o" for="${id}"></output></div>
-    <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}" data-unit="${unit}"></div>`;
+  return `<div class="srow">${dialHTML(id, label, `min="${min}" max="${max}" step="${step}" value="${v}" data-unit="${unit}"`)}</div>`;
+}
+const DK = { CLICK:3, DEAD:32, RANGE:200, STRETCH:8 };
+function dkSteps(r){ return (r.max - r.min) / r.step; }
+function wireDial(dk, r){
+  if(dk.dataset.wired) return; dk.dataset.wired = '1';
+  const fill = dk.querySelector('.dk-fill'), handle = dk.querySelector('.dk-handle'), val = dk.querySelector('.dk-val'), lab = dk.querySelector('.dk-label'), hash = dk.querySelector('.dk-hash');
+  const min = +r.min, max = +r.max, step = +r.step || 1, n = dkSteps(r);
+  hash.innerHTML = (n <= 10 ? Array.from({ length: n - 1 }, (_, i) => (i + 1) / n * 100) : Array.from({ length: 9 }, (_, i) => (i + 1) * 10)).map(p => `<i style="left:${p}%"></i>`).join('');
+  let pct = (r.value - min) / (max - min) * 100, raf = 0, active = false, drag = false;
+  const paint = () => {
+    fill.style.width = pct + '%';
+    handle.style.left = `max(5px, calc(${pct}% - 9px))`;
+    const w = dk.offsetWidth || 1, lt = (10 + lab.offsetWidth + 8) / w * 100, rt = (w - 12 - val.offsetWidth - 8) / w * 100;
+    dk.classList.toggle('dodge', pct < lt || pct > rt);
+  };
+  const toPct = v => (v - min) / (max - min) * 100;
+  const round = v => { v = Math.round((v - min) / step) * step + min; return Math.max(min, Math.min(max, +v.toFixed(4))); };
+  const set = v => { const c = round(v); if(+r.value !== c){ r.value = c; r.dispatchEvent(new Event('input', { bubbles:true })); } };
+  const stopSpring = () => { cancelAnimationFrame(raf); raf = 0; };
+  const springTo = target => { // stiffness 300, damping 25, mass .8 (DialKit's click spring)
+    stopSpring(); if(reduceMotion()){ pct = target; return paint(); }
+    let x = pct, v = 0, last = performance.now();
+    const tick = now => { const dt = Math.min(.032, (now - last) / 1000); last = now;
+      const a = (-300 * (x - target) - 25 * v) / .8; v += a * dt; x += v * dt; pct = x; paint();
+      if(Math.abs(x - target) < .05 && Math.abs(v) < .5){ pct = target; paint(); raf = 0; return; }
+      raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+  };
+  const setActive = (a, d) => { active = a; drag = d; dk.classList.toggle('on', a); dk.classList.toggle('drag', d); };
+  r.addEventListener('input', () => { if(!active && !raf){ pct = toPct(+r.value); paint(); } });
+  let g = null;
+  dk.addEventListener('pointerdown', e => {
+    if(g || e.button > 0 || dk.querySelector('.dk-in')) return;
+    const rect = dk.getBoundingClientRect();
+    g = { id:e.pointerId, x0:e.clientX, y0:e.clientY, rect, click:true, start:+r.value, onVal: !!e.target.closest('.dk-val') };
+    dk.setPointerCapture(e.pointerId); setActive(true, false);
+  });
+  dk.addEventListener('pointermove', e => {
+    if(!g || e.pointerId !== g.id) return;
+    if(g.click && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > DK.CLICK){ g.click = false; setActive(true, true); }
+    if(g.click) return;
+    const { rect } = g; let s = 0;
+    if(e.clientX < rect.left) s = -DK.STRETCH * Math.sqrt(Math.min(Math.max(0, rect.left - e.clientX - DK.DEAD) / DK.RANGE, 1));
+    else if(e.clientX > rect.right) s = DK.STRETCH * Math.sqrt(Math.min(Math.max(0, e.clientX - rect.right - DK.DEAD) / DK.RANGE, 1));
+    dk.classList.add('band'); dk.style.width = `calc(100% + ${Math.abs(s)}px)`; dk.style.transform = s < 0 ? `translateX(${s}px)` : '';
+    const f = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    stopSpring(); pct = f * 100; paint(); set(min + f * (max - min));
+  });
+  const end = cancelled => e => {
+    if(!g || e.pointerId !== g.id) return;
+    const was = g; g = null;
+    dk.classList.remove('band'); dk.style.width = ''; dk.style.transform = '';
+    if(cancelled){ if(!was.click){ r.value = was.start; r.dispatchEvent(new Event('input', { bubbles:true })); } pct = toPct(+r.value); paint(); }
+    else if(was.click && was.onVal) edit();
+    else if(was.click){
+      const raw = min + Math.max(0, Math.min(1, (e.clientX - was.rect.left) / was.rect.width)) * (max - min);
+      let snap = raw;
+      if(n <= 10) snap = min + Math.round((raw - min) / step) * step;
+      else { const nm = (raw - min) / (max - min), near = Math.round(nm * 10) / 10; if(Math.abs(nm - near) <= .03125) snap = min + near * (max - min); }
+      set(snap); springTo(toPct(+r.value));
+    } else { pct = toPct(+r.value); paint(); }
+    setActive(false, false);
+  };
+  dk.addEventListener('pointerup', end(false)); dk.addEventListener('pointercancel', end(true));
+  dk.addEventListener('focus', () => dk.classList.add('on')); dk.addEventListener('blur', () => { if(!g) dk.classList.remove('on'); });
+  dk.addEventListener('keydown', e => {
+    if(dk.querySelector('.dk-in')) return;
+    const k = e.key, big = e.shiftKey ? 10 : 1;
+    if(k === 'ArrowRight' || k === 'ArrowUp'){ e.preventDefault(); set(+r.value + step * big); }
+    else if(k === 'ArrowLeft' || k === 'ArrowDown'){ e.preventDefault(); set(+r.value - step * big); }
+    else if(k === 'Home'){ e.preventDefault(); set(min); } else if(k === 'End'){ e.preventDefault(); set(max); }
+    else if(k === 'Enter'){ e.preventDefault(); edit(); return; } else return;
+    stopSpring(); pct = toPct(+r.value); paint();
+  });
+  function edit(){
+    if(r.dataset.gid) return; // grind settings like 4.1 or 2.3.4 aren't typed numbers; drag or tap instead
+    const inp = document.createElement('input');
+    inp.className = 'dk-in'; inp.inputMode = 'decimal'; inp.setAttribute('enterkeyhint', 'done'); inp.setAttribute('aria-label', lab.textContent + ' value');
+    inp.value = r.dataset.unit === 'time' ? fmtTime(+r.value) : r.value;
+    val.hidden = true; dk.appendChild(inp); inp.focus(); inp.select();
+    let done = false;
+    const finish = ok => { if(done) return; done = true;
+      if(ok){ const t = r.dataset.unit === 'time' ? parseTime(inp.value) : parseFloat(String(inp.value).replace(',', '.')); if(t != null && !isNaN(t)) set(t); }
+      inp.remove(); val.hidden = false; pct = toPct(+r.value); paint(); };
+    inp.addEventListener('keydown', e => { e.stopPropagation(); if(e.key === 'Enter'){ e.preventDefault(); finish(true); dk.focus({ preventScroll:true }); } else if(e.key === 'Escape'){ e.preventDefault(); finish(false); dk.focus({ preventScroll:true }); } });
+    inp.addEventListener('blur', () => finish(true));
+    inp.addEventListener('pointerdown', e => e.stopPropagation());
+  }
+  dk.setAttribute('aria-valuemin', min); dk.setAttribute('aria-valuemax', max);
+  requestAnimationFrame(paint); paint();
 }
 function grindRow(val, setup){
   const g = grinderOf(setup), z = gZone(g);
@@ -876,10 +1012,8 @@ function grindRow(val, setup){
     const span = z.hi - z.lo, cur = gIdx(g, val) ?? z.start;
     const lo = Math.min(cur, Math.max(0, z.lo - Math.ceil(span * 0.5))), hi = Math.max(cur, Math.min(gCount(g) - 1, z.hi + Math.ceil(span * 0.3)));
     const pct = i => (i - lo) / Math.max(1, hi - lo) * 100;
-    return `<div class="gwrap" id="grind-wrap"><div class="srow"><div class="srow-top"><label for="g-range">Grind · ${esc(g.model)}</label><output id="g-range-o"></output></div>
-      <input type="range" id="g-range" min="${lo}" max="${hi}" step="1" value="${cur}" data-gid="${g.id}">
-      <div class="zone" aria-hidden="true"><span style="left:${pct(z.vlo)}%;width:${pct(z.vhi) - pct(z.vlo)}%"></span></div>
-      <div class="ghint">${esc(gHint(g))}</div></div></div>`;
+    return `<div class="gwrap" id="grind-wrap"><div class="srow">${dialHTML('g-range', 'Grind · ' + esc(g.model), `min="${lo}" max="${hi}" step="1" value="${cur}" data-gid="${g.id}"`, `<div class="dk-zone" aria-hidden="true"><span style="left:${pct(z.vlo)}%;width:${pct(z.vhi) - pct(z.vlo)}%"></span></div>`)}
+      <div class="ghint">${esc(gHint(g))} · marked under the slider</div></div></div>`;
   }
   return `<div class="gwrap" id="grind-wrap"><div class="frow"><label for="g-text">Grind${g ? ' · ' + esc(g.model) : ''}</label><input id="g-text" value="${esc(val ?? '')}" placeholder="${g ? 'e.g. ' + esc(g.po[0]) : 'Setting'}"></div>${g ? `<div class="ghint" style="padding:0 16px 10px">${esc(gHint(g))}</div>` : ''}</div>`;
 }
@@ -903,10 +1037,11 @@ function wireSliders(root){
       const rl = root.querySelector('#ratio-line'); if(rl && root.querySelector('#p-dose')) rl.innerHTML = 'Ratio <b>' + ratio(+root.querySelector('#p-dose').value, +root.querySelector('#p-water').value) + '</b>';
     };
     r.addEventListener('input', upd); upd();
+    const dk = root.querySelector(`.dk[data-for="${r.id}"]`); if(dk){ wireDial(dk, r); dk.setAttribute('aria-valuenow', r.value); r.addEventListener('input', () => dk.setAttribute('aria-valuetext', out ? out.textContent : r.value)); dk.setAttribute('aria-valuetext', out ? out.textContent : r.value); }
   });
 }
 function recipeSliders(p, setup){
-  return `<div class="grp">
+  return `<div class="grp dk-wrap">
     ${srow('p-dose','Coffee', p.dose ?? 15, 8, 40, 0.5, 'g')}
     ${srow('p-water','Water', p.water ?? 250, 100, 650, 5, 'g')}
     <div class="ratio-line" id="ratio-line"></div>
@@ -935,13 +1070,35 @@ function phaseText(x, p, ph, s){
   if(x.label === 'Bloom') return { say:`Bloom with ${x.g} g`, sub:'Wet all the grounds, swirl gently.' };
   return { say:`Pour to ${x.total} g`, sub:`Add ${x.g} g. Slow spiral, centre out.` };
 }
+/* rolling counter: each digit is a doubled wheel strip that rolls like an odometer; a digit that goes
+   down (9→0, or 5→0 on the tens-of-seconds wheel, which only has 0–5) keeps rolling forward into the second run and then snaps back, and higher columns follow lower ones a beat later (the carry) */
+function rollTo(el, text){
+  if(el.dataset.v === text) return;
+  const chars = [...text], cols = el.querySelectorAll('.rc');
+  if(el.dataset.v == null || el.dataset.v.length !== text.length){
+    el.innerHTML = chars.map((c, i) => { if(!/\d/.test(c)) return `<span class="rc-x">${c}</span>`;
+      const base = chars[i - 1] === ':' ? 6 : 10, run = Array.from({ length: base }, (_, d) => `<i>${d}</i>`).join('');
+      return `<span class="rc"><span class="rc-s" data-base="${base}">${run + run}</span></span>`; }).join('');
+    el.querySelectorAll('.rc-s').forEach((s, i) => { const d = +text.replace(/\D/g, '')[i]; s.style.transition = 'none'; s.style.transform = `translateY(${-d}em)`; s.dataset.d = d; });
+    el.dataset.v = text; el.setAttribute('aria-label', text); return;
+  }
+  const digits = text.replace(/\D/g, ''), strips = [...el.querySelectorAll('.rc-s')], n = strips.length;
+  strips.forEach((s, i) => {
+    const from = +s.dataset.d, to = +digits[i]; if(from === to) return;
+    const wrap = to < from, target = wrap ? to + +s.dataset.base : to;
+    s.style.transition = ''; s.style.transitionDelay = reduceMotion() ? '0ms' : `${(n - 1 - i) * 45}ms`;
+    s.style.transform = `translateY(${-target}em)`; s.dataset.d = to;
+    if(wrap){ const snap = () => { s.removeEventListener('transitionend', snap); if(+s.dataset.d === to){ s.style.transition = 'none'; s.style.transform = `translateY(${-to}em)`; } }; s.addEventListener('transitionend', snap); }
+  });
+  el.dataset.v = text; el.setAttribute('aria-label', text);
+}
 let heroK = null;
 const grindTxt = (p, g) => p.grind ? (g && gUnit(g) ? p.grind + ' ' + gUnit(g) : 'G' + p.grind) : '';
 function setTxt(el, v){ if(el && el.textContent !== v) el.textContent = v; }
 function paintTimer(){
   const clock = $('#h-t'); if(!clock) return;
   const p = curPlan(), ph = phases(p), L = ph.list, ms = tNow(), s = ms / 1000, started = T.run || ms > 0;
-  setTxt(clock, fmtTime(Math.floor(s)));
+  rollTo(clock, fmtTime(Math.floor(s)));
   $('#h-f').style.transform = `scaleX(${Math.min(1, s / ph.total).toFixed(4)})`;
   const k = started ? phaseIdx(L, s) : -1, x = L[Math.max(0, k)], nx = L[k + 1];
   const st = setupById(p.setupId) || curSetup(), g = grinderOf(st);
@@ -1048,7 +1205,7 @@ function stepBrew(p){
     : `<button class="fl-btn" data-act="timerToggle">Start</button><p class="fl-links"><button class="link" data-act="newBrew">Log without the timer</button></p>`;
   return `<div class="hero-t" aria-live="polite">
       <div class="fl-eyebrow" id="h-l"></div>
-      <div class="h-t" id="h-t" role="timer">0:00</div>
+      <div class="h-t" id="h-t" role="timer"></div>
       <div class="h-s" id="h-s"></div><div class="h-u" id="h-u"></div>
       <div class="h-track"><i id="h-f"></i>${L.slice(1).map(x => `<b style="left:${(x.at / ph.total * 100).toFixed(2)}%"></b>`).join('')}</div>
       <div class="h-marks">${L.slice(0, -1).map((x, j) => `<span data-m="${j}" style="left:${(x.at / ph.total * 100).toFixed(2)}%">${x.total}</span>`).join('')}<span data-m="${L.length - 1}" style="right:0">${fmtTime(ph.target)}</span></div>
@@ -1114,7 +1271,7 @@ function goBrew(){ flow.step = null; closeSheet(); if(location.hash !== '#brew')
 function openPlanForm(){
   const p = curPlan(), st = setupById(p.setupId) || curSetup();
   openSheet('Adjust recipe', `<form id="plan-form">${recipeSliders(p, st)}
-    <div class="grp" style="margin-top:12px">${srow('p-target','Target time', parseTime(p.targetTime) || 180, 90, 360, 5, 'time')}</div></form>`, { form:'plan-form' });
+    <div class="grp dk-wrap" style="margin-top:6px">${srow('p-target','Target time', parseTime(p.targetTime) || 180, 90, 360, 5, 'time')}</div></form>`, { form:'plan-form' });
   wireSliders($('#sheet-body'));
   $('#plan-form').onsubmit = e => { e.preventDefault(); setPlan({ ...p, ...readRecipe(), targetTime: fmtTime(+$('#p-target').value) }, 'Adjusted by you'); closeSheet(); };
 }

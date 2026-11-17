@@ -108,6 +108,7 @@ with sync_playwright() as p:
     check('beans and gear folded in', pg.locator('.fl-step.done').count() == 3 and pg.locator('nav a').count() == 2)
     pg.click('[data-act=timerToggle]'); pg.evaluate('T.start = Date.now() - 62000'); pg.wait_for_timeout(500)
     check('timer shows pour 1', 'POUR 1' in pg.inner_text('#h-l').upper() and 'Pour to' in pg.inner_text('#h-s'), pg.inner_text('#h-l'))
+    check('rolling counter digits', pg.locator('#h-t .rc').count() == 3 and pg.get_attribute('#h-t', 'aria-label') in ('1:02', '1:03'), str(pg.get_attribute('#h-t', 'aria-label')))
     check('step text animates on change', 'swap' in pg.eval_on_selector('#h-s', 'e => e.className'))
     pg.click('[data-act=timerSkip]'); pg.wait_for_timeout(300)
     check('skip jumps to pour 2', 'POUR 2' in pg.inner_text('#h-l').upper(), pg.inner_text('#h-l'))
@@ -124,6 +125,26 @@ with sync_playwright() as p:
     pg.screenshot(path='/tmp/drawdown-beans.png')
     pg.click('[data-act=pickBean]'); pg.wait_for_timeout(500)
     check('picking beans moves to recipe', 'Recipe' in pg.inner_text('.fl-step.on .fl-sh'))
+
+    # 2b. DialKit-style sliders in Adjust: drag, tap-snap, type a value, grind steps
+    pg.evaluate("goStep(2)"); pg.wait_for_timeout(400)
+    pg.click('[data-act=editPlan]'); pg.wait_for_timeout(700)
+    bx = pg.locator('.dk[data-for=p-water]').bounding_box(); y = bx['y'] + bx['height'] / 2
+    pg.mouse.move(bx['x'] + 20, y); pg.mouse.down(); pg.mouse.move(bx['x'] + bx['width'] * .5, y, steps=6); pg.mouse.move(bx['x'] + bx['width'] * .4, y, steps=4); pg.mouse.up(); pg.wait_for_timeout(300)
+    w = pg.evaluate("+document.getElementById('p-water').value")
+    check('slider drag sets water', 300 <= w <= 340 and w % 5 == 0, str(w))
+    pg.mouse.click(bx['x'] + bx['width'] * .2 + 2, y); pg.wait_for_timeout(600)
+    check('slider tap snaps to a tenth', pg.evaluate("+document.getElementById('p-water').value") == 210, pg.evaluate("document.getElementById('p-water').value"))
+    vb = pg.locator('#p-dose-o').bounding_box(); pg.mouse.click(vb['x'] + vb['width'] / 2, vb['y'] + vb['height'] / 2); pg.wait_for_timeout(300)
+    pg.keyboard.press('Control+a'); pg.keyboard.type('16.5'); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+    check('slider typed value', pg.evaluate("+document.getElementById('p-dose').value") == 16.5)
+    gb = pg.locator('.dk[data-for=g-range]').bounding_box()
+    pg.locator('.dk[data-for=g-range]').focus(); pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(200)
+    check('grind slider steps the Ode dial', pg.evaluate("readGrind()") == '4.2', pg.evaluate("readGrind()"))
+    pg.screenshot(path='/tmp/drawdown-sliders.png')
+    pg.click('#sheet-save'); pg.wait_for_timeout(500)
+    check('adjust saves', pg.evaluate("curPlan().water") == 210 and pg.evaluate("curPlan().dose") == 16.5 and pg.evaluate("curPlan().grind") == '4.2', str(pg.evaluate("curPlan()")))
+    pg.evaluate("save({ ...S.prefs, plan:null })"); pg.wait_for_timeout(300)
 
     # 3. quick tip without AI moves the Ode one click finer
     check('rule tip', pg.evaluate("ruleAdvice(brewById('brew_a'), setupById('setup_a')).next.grind") == '3.2')
