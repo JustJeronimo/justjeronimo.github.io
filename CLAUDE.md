@@ -20,7 +20,7 @@ Context for Claude working in this repo. Read it before changing anything.
 
 A pour-over brew log for iPhone, used from Safari / home screen.
 
-Features: setups (brewer, hand or electric grinder, kettle, filter); beans (scan a bag photo or add by hand); brew log (dose, water, auto ratio, grind, temp, bloom, time, 1–5 stars, taste tags, notes); ring timer with pour plan; "Brew again"; Journal with All / Top rated and best recipe per bean; next-brew advice (AI, or rule-based fallback); grinder-aware grind sliders.
+Features: one guided Brew page (checklist: 01 Beans · 02 Gear · 03 Recipe · 04 Brew · 05 Taste; done steps fold to a summary with "Change"); setups (brewer, hand or electric grinder, kettle, filter); beans (scan a bag photo or add by hand); brew log (dose, water, auto ratio, grind, temp, bloom, time, 1–5 stars, taste tags, notes); ring timer with pour plan; "Brew again"; Journal with All / Top rated and best recipe per bean; next-brew advice (AI, or rule-based fallback); grinder-aware grind sliders.
 
 ### Code
 
@@ -28,7 +28,9 @@ Features: setups (brewer, hand or electric grinder, kettle, filter); beans (scan
 - **Storage adapters:** `cloudStore` (Claude artifact `db`, per user at `data/users/<id>`) when `window.claude` exists; otherwise `localStorage` key `brewlog-v1`. On GitHub Pages there is no `window.claude`, so data is **per device/browser only** and AI is off. Photo reading there uses **on-device OCR** (Tesseract.js 5.1.1 from jsDelivr, loaded on first scan) + `parseLabel()` rules (origin/region/process/varietal/altitude/date/notes lists; biggest text line = name) + `starterRecipe()` from the grinder zone. Bean "Suggest a recipe" and next-brew tips use the rule-based versions.
 - Docs in one collection, `kind`: `setup` | `bean` | `brew` | `prefs`. `prefs.plan` is the recipe queued on the Brew screen; cleared after logging.
 - `curPlan()` priority: saved plan → last brew's advice → last brew → starter recipe from the grinder's V60 start.
-- `pourPlan()`: bloom + 3–4 pours, 30 s apart after bloom.
+- `pourPlan()`: bloom + 3–4 pours, 30 s apart after bloom. `phases()` adds a drawdown phase; the bar runs to the target time.
+- **Brew flow** (v1.6): tabs are only Brew · Journal. `viewBrew()` renders the checklist; `flow.step` (null = `autoStep()`), `goStep(n)`, `taste` draft, `resetFlow()`. Steps: `stepBeans/stepGear/stepRecipe/stepBrew/stepTaste`. `#beans`/`#gear` hashes open steps 01/02. Settings button sits in the Brew header.
+- **Hero timer** (picked from prototypes): huge Geist Mono time, serif instruction, greyscale bar (milk fill on `#2a2a2a`) with gram marks, "Next" line. On each phase change the instruction, hint and next line blur-rise in (`.swap`, 520 ms spring, staggered 0/60/110 ms). Controls: Start → Stop + Skip → Taste (stars, tags, notes, Log brew).
 - **Grinders:** `GRINDERS` table, 56 models. `kind`: `steps` (numbers/clicks), `ode` (Fellow 1–11 with .1/.2), `rot` (1Zpresso rotation.number.tick), `text` (typed; notation we don't model). `po` = pour-over range from the Honest Coffee Guide chart; V60 zone = finer 57% of it (400–700 of 400–930 µm); start = middle of the V60 zone; `nudge` = clicks for a noticeable change. Functions: `gIdx`, `gStr`, `gZone`, `matchGrinder` (name → model, longest alias wins), `shiftGrind`.
 - **AI** (only inside Claude): `sample` capability, resolved once at boot into `AI`. The first AI call shows Claude's consent prompt and **must run synchronously inside a tap** — that's why scanning is photo → preview → "Read label" button. Prompts always include the grinder's notation (`grindNote`).
 - **Dial-in engine (no AI):** `extraction()` scores a cup from taste tags, notes words and time vs target; `ruleAdvice(brew, setup, history, bean)` changes one thing: grind ±1–2 nudges, splits the difference when an under- and over-extracted cup of the same beans exist, switches to temperature (±2°) after two grind moves the same way, flags sour+bitter as uneven extraction, keeps good cups (4★+). `starterRecipe(bean, setup)` uses roast level, process, origin, altitude and days off roast on top of the grinder's V60 start. Scenarios are locked in `drawdown/tests/test_app.py`.
@@ -55,7 +57,7 @@ Inspired by the *feel* of the beean app (black, italic serif titles, square, out
 - **Mark:** a lowercase d drawn as one pour — kettle stream falls and spirals into the bed. Milk on black, black on milk. Lockup = mark + "drawdown" in Instrument Serif italic. App icon: milk mark on black (`coffee/assets/`).
 - **Colour:** black `#000000` ground · `#121212` panels · `#1c1c1c` inside sheets · `#2a2a2a` tracks · `#3a3a3a` hairlines · `#8c8c8c` secondary · `#5e5e5e` inactive · milk `#f4f2ec` text. **No accent.** Only hue: water `#9db8dc` (deep `#2e3a4a`), only for water. Muted taste tones only on cup labels.
 - **Type:** Instrument Serif italic for titles (sentence case) · **Allo** for UI (Josh Puckett, OFL, variable 100–900, loaded from jsDelivr `allo-font@1.0.1`; regular/light, never bold; uppercase labels +0.04em) · Geist Mono for brew codes.
-- **Shapes:** square everything (0 radius except the app icon). Primary = one solid milk block per screen; secondary = 1.5 px milk outline; icon buttons = outlined squares; rows with full-width hairlines, light-weight values, underlined "Change" links; tab bar = four uppercase words, no icons.
+- **Shapes:** square everything (0 radius except the app icon). Primary = one solid milk block per screen; secondary = 1.5 px milk outline; icon buttons = outlined squares; rows with full-width hairlines, light-weight values, underlined "Change" links; tab bar = two uppercase words (BREW · JOURNAL), no icons.
 - **Brew code:** `15/250 · G4.1 · 94° · 3:00 · ★4` (dose/water · G + grinder notation · °C · time). Brew numbers `BREW 0042`.
 - **Cup label:** per brew; taste-colour blocks on top, serif italic bean name, brew code, stars.
 - **Voice:** short, specific, a bit cheeky, never snobby. Units always. Verb-first buttons. No exclamation marks, no emoji.
@@ -69,6 +71,11 @@ Inspired by the *feel* of the beean app (black, italic serif titles, square, out
 - `drawdown/render/` — grinder 3D renderer.
 - `drawdown/tests/test_app.py` — end-to-end checks (Playwright). Must print `ALL PASS` before shipping.
 - Data sources: grinder ranges from honestcoffeeguide.com/pour-over-grind-size; motion/mobile rules from the skills above.
+
+## Prototypes
+
+- Brew flow options (Checklist / Focus / Timeline): https://claude.ai/artifact/NTsNVtfSycAeMwAuKyeg3f — Checklist won.
+- Timer step options (Hero / Stack / Dial): https://claude.ai/artifact/T67xpWg2Yc1H3H2wZwLL31 — Hero won, made greyscale.
 
 ## Open items
 

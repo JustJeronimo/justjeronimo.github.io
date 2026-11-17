@@ -81,13 +81,27 @@ with sync_playwright() as p:
     check('starter: dark natural', D['darkNat']['temp'] == 89 and D['darkNat']['grind'] == '5.1', str(D['darkNat']))
     check('grinder images exist', all(os.path.exists(os.path.join(ROOT, 'coffee', 'assets', 'grinders', i + '.png')) for i in pg.evaluate('GRINDERS.map(g => g.id)')))
 
-    # 2. timer + log brew
+    # 2. guided brew page: opens on the Brew step, hero timer, skip, stop → taste → log
+    check('opens on brew step', 'Brew' in pg.inner_text('.fl-step.on .fl-sh'), pg.inner_text('.fl-step.on .fl-sh'))
+    check('beans and gear folded in', pg.locator('.fl-step.done').count() == 3 and pg.locator('nav a').count() == 2)
     pg.click('[data-act=timerToggle]'); pg.evaluate('T.start = Date.now() - 62000'); pg.wait_for_timeout(500)
-    check('timer shows pour 1', 'Pour 1' in pg.inner_text('#step-main'))
+    check('timer shows pour 1', 'POUR 1' in pg.inner_text('#h-l').upper() and 'Pour to' in pg.inner_text('#h-s'), pg.inner_text('#h-l'))
+    check('step text animates on change', 'swap' in pg.eval_on_selector('#h-s', 'e => e.className'))
+    pg.click('[data-act=timerSkip]'); pg.wait_for_timeout(300)
+    check('skip jumps to pour 2', 'POUR 2' in pg.inner_text('#h-l').upper(), pg.inner_text('#h-l'))
     pg.screenshot(path='/tmp/drawdown-brew.png')
-    pg.click('[data-act=timerToggle]'); pg.click('[data-act=logTimed]'); pg.wait_for_timeout(500)
-    pg.click('#sheet-save'); pg.wait_for_timeout(600)
-    check('brew logged', pg.evaluate('S.brews.length') == 2)
+    pg.click('[data-act=timerStop]'); pg.wait_for_timeout(500)
+    check('stop opens taste', 'Taste' in pg.inner_text('.fl-step.on .fl-sh'))
+    pg.click('[data-act=tRate][data-id="4"]'); pg.click('[data-act=tTag][data-id=sweet]'); pg.fill('#t-notes', 'Stone fruit')
+    pg.click('[data-act=tLog]'); pg.wait_for_timeout(700)
+    nb = pg.evaluate('S.brews[0]')
+    check('brew logged', pg.evaluate('S.brews.length') == 2 and nb['rating'] == 4 and nb['tags'] == ['sweet'] and nb['notes'] == 'Stone fruit' and nb['time'] >= 75, str(nb))
+    pg.evaluate('closeSheet()'); pg.wait_for_timeout(500)
+    pg.click('.fl-step [data-act=step][data-id="0"]'); pg.wait_for_timeout(500)
+    check('beans step opens', pg.locator('[data-act=pickBean]').count() == 1)
+    pg.screenshot(path='/tmp/drawdown-beans.png')
+    pg.click('[data-act=pickBean]'); pg.wait_for_timeout(500)
+    check('picking beans moves to recipe', 'Recipe' in pg.inner_text('.fl-step.on .fl-sh'))
 
     # 3. quick tip without AI moves the Ode one click finer
     check('rule tip', pg.evaluate("ruleAdvice(brewById('brew_a'), setupById('setup_a')).next.grind") == '3.2')
@@ -102,7 +116,7 @@ with sync_playwright() as p:
     pg.goto(URL + '#journal'); pg.wait_for_timeout(800); pg.screenshot(path='/tmp/drawdown-journal.png')
     check('journal lists brews', pg.locator('.cell[data-act=brew]').count() >= 2)
     # 5b. settings: version + update check
-    pg.goto(URL + '#gear'); pg.wait_for_timeout(700)
+    pg.goto(URL + '#brew'); pg.wait_for_timeout(700)
     pg.click('[data-act=settings]'); pg.wait_for_timeout(700)
     ver = pg.evaluate('APP_VERSION')
     check('settings shows version', ver in pg.inner_text('#sheet-body'), ver)

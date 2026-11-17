@@ -116,7 +116,7 @@ body.timing .fill{transition:none}
 .pill svg{width:20px;height:20px}
 .pill.go{background:var(--accent);color:#1A0F00}
 .pill.ghost{background:var(--grp2);color:var(--label);flex:0 0 auto}
-nav{position:fixed;left:0;right:0;bottom:0;z-index:8;background:rgba(18,18,20,.82);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);border-top:.5px solid var(--sep);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 0 calc(env(safe-area-inset-bottom) + 4px)}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:8;background:rgba(18,18,20,.82);-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6);border-top:.5px solid var(--sep);display:grid;grid-template-columns:repeat(2,1fr);padding:6px 0 calc(env(safe-area-inset-bottom) + 4px)}
 nav a{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:500;color:#8E8E93;text-decoration:none;padding:2px 0}
 nav a svg{width:26px;height:26px}
 nav a[aria-current="page"]{color:var(--accent)}
@@ -356,6 +356,75 @@ body.sheet-up #dock{opacity:0;pointer-events:none}
   #sheet{opacity:0}
   #sheet.open{opacity:1}
 }
+/* ---------- brew flow (checklist + hero timer) ---------- */
+.fl-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:22px 4px 14px}
+.fl-head .iconbtn{margin-bottom:4px}
+.fl-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--sec);font-weight:400}
+.fl-title{font:italic 400 48px/1 var(--serif);letter-spacing:-.01em;margin:6px 0 0}
+.fl{margin:0 -16px}
+.fl-step{border-top:1px solid var(--sep);padding:0 20px;scroll-margin-top:calc(env(safe-area-inset-top) + 8px)}
+.fl-step:last-child{border-bottom:1px solid var(--sep)}
+.fl-sh{display:flex;align-items:baseline;gap:14px;width:100%;padding:18px 0;background:none;border:0;text-align:left;color:var(--ter);font:inherit}
+.fl-n{font:12px var(--mono);width:20px;flex:none}
+.fl-t{font-size:16px;font-weight:300;flex:none}
+.fl-sum{flex:1;min-width:0;text-align:right;font-size:15px;font-weight:300;color:var(--label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fl-ch{flex:none;font-size:13px;color:var(--label);text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+.fl-step.done .fl-sh{color:var(--sec)}
+.fl-step.on .fl-sh{color:var(--label);padding-bottom:14px}
+.fl-step.on .fl-t{font:italic 400 30px/1 var(--serif);letter-spacing:-.01em}
+.fl-body{padding:0 0 24px}
+.fl-body.rise{animation:flrise .42s var(--spring-soft) both}
+@keyframes flrise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.fl-row{display:flex;align-items:center;border-bottom:1px solid var(--grp3)}
+.fl-opt{flex:1;min-width:0;display:flex;align-items:center;gap:14px;padding:12px 0;background:none;border:0;text-align:left;color:var(--label);font:inherit}
+.fl-opt .thumb{border-radius:0}
+.fl-nm{display:block;font:italic 400 23px/1.1 var(--serif)}
+.fl-mt{display:block;font-size:12.5px;color:var(--sec);font-weight:300;margin-top:3px}
+.fl-tick{flex:none;font-size:14px;margin-left:auto;padding-left:8px}
+.fl-edit{flex:none;background:none;border:0;color:var(--sec);font:inherit;font-size:13px;padding:12px 0 12px 16px;text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+.fl-btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:56px;border:0;background:var(--label);color:#000;font:inherit;font-size:14px;letter-spacing:.06em;text-transform:uppercase;font-weight:500;margin-top:16px}
+.fl-btn.ol{background:transparent;color:var(--label);box-shadow:inset 0 0 0 1.5px var(--label);font-weight:400}
+.fl-two{display:flex;gap:10px;margin-top:20px}
+.fl-two .fl-btn{margin-top:0}
+.fl-two .fl-btn.ol{flex:0 0 112px}
+.fl-links{display:flex;gap:20px;justify-content:center;margin:16px 0 0}
+.fl-links .link{font-size:13px;background:none;border:0;font-family:inherit}
+.fl-why{font-size:13.5px;color:var(--sec);font-weight:300;line-height:1.45;margin:0 0 10px}
+.fl-why .link{font-size:13px}
+.fl-tip{background:var(--grp);padding:14px 16px;margin:4px 0 12px}
+.fl-tip strong{display:block;font-weight:400;margin-top:6px}
+.fl-tip ul{margin:8px 0 0;padding-left:18px;color:var(--sec);font-size:14px;font-weight:300}
+.fl-kvs{border-top:1px solid var(--grp3)}
+.fl-kv{display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--grp3)}
+.fl-kv span{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--sec)}
+.fl-kv b{font-weight:300;font-size:17px;font-variant-numeric:tabular-nums}
+.fl-step .rating{padding:0 0 14px;gap:6px}
+.fl-step .rating button{padding:0;font-size:34px}
+.fl-step .pick{padding:0}
+.fl-notes{display:block;width:100%;min-height:76px;margin-top:16px;background:var(--grp);border:0;border-radius:0;color:var(--label);font:300 16px/1.4 var(--font);padding:12px 14px;resize:vertical}
+.fl-notes::placeholder{color:var(--ter)}
+/* hero timer */
+.h-t{font:400 104px/.9 var(--mono);letter-spacing:-.05em;margin:14px 0 0 -6px;font-variant-numeric:tabular-nums}
+.h-s{font:italic 400 38px/1.02 var(--serif);letter-spacing:-.01em;margin-top:22px}
+.h-u{font-size:14px;color:var(--sec);font-weight:300;margin-top:8px;min-height:20px}
+.h-track{position:relative;height:10px;background:var(--grp3);margin-top:30px;overflow:hidden}
+.h-track i{position:absolute;inset:0;background:var(--label);transform-origin:left;transform:scaleX(0)}
+.h-track b{position:absolute;top:0;bottom:0;width:3px;margin-left:-1px;background:var(--bg)}
+.h-marks{position:relative;height:18px;margin-top:8px}
+.h-marks span{position:absolute;top:0;font:11px var(--mono);color:var(--ter);transition:color .2s ease-out}
+.h-marks span.past{color:var(--sec)}
+.h-marks span.cur{color:var(--label)}
+.h-next{display:flex;justify-content:space-between;border-top:1px solid var(--sep);margin-top:18px;padding-top:14px;font-size:13px;color:var(--sec);font-weight:300}
+.h-next span:last-child{color:var(--label)}
+@keyframes hIn{from{opacity:0;transform:translateY(10px);filter:blur(3px)}to{opacity:1;transform:none;filter:blur(0)}}
+.h-s.swap,.h-u.swap,.h-next.swap span:last-child{animation:hIn .52s var(--spring-soft) both}
+.h-u.swap{animation-delay:60ms}
+.h-next.swap span:last-child{animation-delay:110ms}
+.fl-opt,.fl-btn,.fl-edit,.fl-sh{transition:transform .1s ease-out,opacity .15s ease-out}
+.fl-opt:active,.fl-btn:active,.fl-sh[data-act]:active{transform:scale(.97)}
+.fl-opt,.fl-btn,.fl-edit,.fl-sh,.fl-links .link{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+@media (prefers-reduced-motion:reduce){.fl-body.rise{animation:flfade .2s ease-out both}.h-s.swap,.h-u.swap,.h-next.swap span:last-child{animation:none}}
+@keyframes flfade{from{opacity:0}to{opacity:1}}
 </style>
 </head>
 <body>
@@ -365,8 +434,6 @@ body.sheet-up #dock{opacity:0;pointer-events:none}
 <nav aria-label="Sections">
   <a href="#brew" data-tab="brew"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="15" r="9.5"/><path d="M14 9.5V15l3.5 2.5M11 3h6"/></svg>Brew</a>
   <a href="#journal" data-tab="journal"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="4" width="17" height="20" rx="3"/><path d="M10 10h8M10 14h8M10 18h5"/></svg>Journal</a>
-  <a href="#beans" data-tab="beans"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><ellipse cx="14" cy="14" rx="7" ry="10" transform="rotate(32 14 14)"/><path d="M10 21c3.5-3 4-10.5 8-14"/></svg>Beans</a>
-  <a href="#gear" data-tab="gear"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h16l-6 8.5V23h-4v-6.5z"/><path d="M9 4.5h10"/></svg>Gear</a>
 </nav>
 
 <input type="file" id="cam" accept="image/*" capture="environment" hidden>
@@ -548,7 +615,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.5 · 17 Nov 2026';
+const APP_VERSION = '1.6 · 17 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -856,47 +923,45 @@ const T = { start:0, acc:0, run:false, raf:0 };
 function loop(){ paintTimer(); if(T.run) T.raf = requestAnimationFrame(loop); }
 function stopTimer(reset){ if(T.run){ T.acc += Date.now() - T.start; T.run = false; } cancelAnimationFrame(T.raf); if(reset) T.acc = 0; document.body.classList.remove('timing'); }
 const tNow = () => T.acc + (T.run ? Date.now() - T.start : 0);
-const R = 124, CIRC = 2 * Math.PI * R;
+/* phases = bloom + pours + drawdown; the bar runs to the target time (or a bit past the last pour) */
+function phases(p){
+  const pours = pourPlan(p), last = pours[pours.length - 1], target = parseTime(p.targetTime) || 180;
+  const list = [...pours, { label:'Drawdown', at: last.at + 30, drain:true }];
+  return { list, target, total: Math.max(target, last.at + 45) };
+}
+const phaseIdx = (list, s) => { let k = 0; list.forEach((x, i) => { if(s >= x.at) k = i; }); return k; };
+function phaseText(x, p, ph, s){
+  if(x.drain) return { say:'Let it drain', sub: s < ph.target ? `Target ${fmtTime(ph.target)}. Stop when the bed is dry.` : `Past ${fmtTime(ph.target)}. Stop when the bed is dry.` };
+  if(x.label === 'Bloom') return { say:`Bloom with ${x.g} g`, sub:'Wet all the grounds, swirl gently.' };
+  return { say:`Pour to ${x.total} g`, sub:`Add ${x.g} g. Slow spiral, centre out.` };
+}
+let heroK = null;
+const grindTxt = (p, g) => p.grind ? (g && gUnit(g) ? p.grind + ' ' + gUnit(g) : 'G' + p.grind) : '';
+function setTxt(el, v){ if(el && el.textContent !== v) el.textContent = v; }
 function paintTimer(){
-  const c = $('#clock'); if(!c) return paintDock();
-  const ms = tNow(), s = ms / 1000, p = curPlan(), target = parseTime(p.targetTime) || 180;
-  const m = Math.floor(s / 60), sec = Math.floor(s % 60), t = Math.floor((ms % 1000) / 100);
-  const ch = `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}<small>.${t}</small>`;
-  if(c.dataset.v !== ch){ c.innerHTML = ch; c.dataset.v = ch; }
-  c.classList.toggle('paused', !T.run && s > 0);
-  const fg = $('#ring-fg');
-  fg.style.strokeDashoffset = CIRC * (1 - Math.min(1, s / target));
-  fg.classList.toggle('zero', s === 0);
-  const pours = pourPlan(p), started = T.run || s > 0;
-  let cur = 0; pours.forEach((x, i) => { if(s >= x.at) cur = i; });
-  document.querySelectorAll('.pour').forEach((el, i) => {
-    const x = pours[i], nx = pours[i + 1]; let f = 0;
-    if(started && x){ if(i < cur) f = 1; else if(i === cur){ const end = nx ? nx.at : Math.max(x.at + 30, target); f = Math.min(1, (s - x.at) / Math.max(1, end - x.at)); } }
-    const fl = el.querySelector('.fill'); if(fl) fl.style.transform = `scaleX(${f.toFixed(4)})`;
-    el.classList.toggle('now', started && i === cur); el.classList.toggle('done', started && i < cur);
-  });
-  const x = pours[cur], nx = pours[cur + 1], left = nx ? fmtTime(Math.max(0, Math.ceil(nx.at - s))) : '';
-  let main, sub = '';
-  if(!started){ main = `Start with a <b>${pours[0].g} g</b> bloom, then ${pours.length - 1} pours to <b>${p.water ?? 250} g</b>.`; }
-  else if(!T.run){ main = `Stopped at ${fmtTime(Math.floor(s))}. Log the brew while it’s fresh.`; }
-  else if(cur === 0){ main = `Pour <b>${x.g} g</b> so all the grounds are wet.`; sub = nx ? `Next pour in ${left}` : ''; }
-  else if(nx){ main = `${x.label}: add <b>${x.g} g</b>, up to ${x.total} g.`; sub = `Next pour in ${left}`; }
-  else if(s < target){ main = `Last pour: add <b>${x.g} g</b> to ${x.total} g, then let it draw down.`; sub = `Target ${fmtTime(target)}`; }
-  else { main = `Past your ${fmtTime(target)} target. Stop when the bed is dry.`; }
-  const sm = $('#step-main'), ss = $('#step-sub');
-  if(sm.dataset.v !== main){ const first = !sm.dataset.v; sm.innerHTML = main; sm.dataset.v = main; if(!first) restartAnim(sm, 'in'); }
-  if(ss.textContent !== sub) ss.textContent = sub;
-  const rs = $('#ring-sub'), rt = `target ${fmtTime(target)}`; if(rs.textContent !== rt) rs.textContent = rt;
-  paintDock();
+  const clock = $('#h-t'); if(!clock) return;
+  const p = curPlan(), ph = phases(p), L = ph.list, ms = tNow(), s = ms / 1000, started = T.run || ms > 0;
+  setTxt(clock, fmtTime(Math.floor(s)));
+  $('#h-f').style.transform = `scaleX(${Math.min(1, s / ph.total).toFixed(4)})`;
+  const k = started ? phaseIdx(L, s) : -1, x = L[Math.max(0, k)], nx = L[k + 1];
+  const st = setupById(p.setupId) || curSetup(), g = grinderOf(st);
+  let label;
+  if(!started) label = `Ready · ${p.temp ?? '–'}° · ${grindTxt(p, g) || 'grind –'}`;
+  else if(!T.run) label = `Stopped at ${fmtTime(Math.floor(s))}`;
+  else if(x.drain) label = `Drawdown · ${s < ph.target ? fmtTime(Math.ceil(ph.target - s)) + ' to target' : 'past target'}`;
+  else label = `${x.label} · ${fmtTime(Math.ceil(nx.at - s))} left`;
+  setTxt($('#h-l'), label);
+  document.querySelectorAll('.h-marks span').forEach(m => { const j = +m.dataset.m, c = !started ? '' : j < k ? 'past' : j === k ? 'cur' : ''; if(m.className !== c) m.className = c; });
+  if(k === heroK) return;
+  const first = heroK === null; heroK = k;
+  const t = started ? phaseText(x, p, ph, s) : { say:`Bloom with ${L[0].g} g`, sub:'Rinse the filter, tare, then start.' };
+  setTxt($('#h-s'), t.say); setTxt($('#h-u'), t.sub);
+  const n = started ? nx : L[1];
+  setTxt($('#h-n'), n ? `${fmtTime(n.at)} · ${n.drain ? 'drawdown' : 'to ' + n.total + ' g'}` : `stop at ${fmtTime(ph.target)}`);
+  if(!first && !reduceMotion()) [$('#h-s'), $('#h-u'), $('.h-next')].forEach(el => restartAnim(el, 'swap'));
 }
-function paintDock(){
-  const d = $('#dock'); if(tab !== 'brew' || !loaded){ d.classList.add('away'); return; }
-  d.classList.remove('away'); const s = tNow() / 1000;
-  const html = T.run ? `<button class="pill go" data-act="timerToggle">${I.stop}Stop</button>`
-    : s > 0 ? `<button class="pill ghost" data-act="timerReset" aria-label="Reset timer">${I.reset}</button><button class="pill go" data-act="logTimed">Log brew · ${fmtTime(Math.floor(s))}</button>`
-    : `<button class="pill go" data-act="timerToggle">${I.play}Start</button>`;
-  if(d.dataset.html !== html){ d.innerHTML = html; d.dataset.html = html; }
-}
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function paintDock(){ $('#dock').classList.add('away'); }
 
 /* ---------- views ---------- */
 function rowBrew(b, withAgain = true){
@@ -907,44 +972,95 @@ function rowBrew(b, withAgain = true){
       <span class="c-sub">${esc(fmtDate(b.date))}${b.rating ? ' &nbsp;' + stars(b.rating) : ''}</span></span>
     </button>${withAgain ? `<button class="again" data-act="again" data-id="${b.id}">Again</button>` : ''}</div>`;
 }
-function noSetupBlock(){
-  return `<div class="sec-h"><span>Get started</span></div><div class="grp">
-    <button class="cell" data-act="addSetup"><span class="c-main"><span class="c-title acc">Add your brewing setup</span><span class="c-sub">Pick your brewer and hand or electric grinder. Grind settings, tips and recipes follow your grinder’s own dial.</span></span>${I.chev}</button></div>`;
+
+/* Brew is one guided page: 01 Beans · 02 Gear · 03 Recipe · 04 Brew · 05 Taste.
+   The active step is open; done steps fold to a one-line summary with "Change". */
+const flow = { step:null, shown:null };
+const taste = { rating:0, tags:[], notes:'' };
+function resetFlow(){ flow.step = null; flow.noBean = false; taste.rating = 0; taste.tags = []; taste.notes = ''; }
+function autoStep(){
+  const p = curPlan();
+  if(!beanById(p.beanId) && !flow.noBean) return 0;
+  if(!S.setups.length) return 1;
+  const ms = tNow(); if(T.run) return 3; if(ms > 0) return 4;
+  if(S.brews[0]?.advice && !S.prefs.plan) return 2;
+  return 3;
 }
+const activeStep = () => flow.step ?? autoStep();
+function goStep(n){
+  flow.step = n; render();
+  requestAnimationFrame(() => { const el = document.querySelector('.fl-step.on'); if(el) el.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block:'start' }); });
+}
+const settingsBtn = `<button class="iconbtn" data-act="settings" aria-label="Settings and version"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg></button>`;
 function viewBrew(){
-  const p = curPlan(), st = setupById(p.setupId) || curSetup(), bean = beanById(p.beanId), pours = pourPlan(p);
-  const maxG = Math.max(...pours.map(x => x.g), 1);
-  const last = S.brews[0], tip = last?.advice && !S.prefs.plan ? last.advice : null;
-  const beanOpts = '<option value="">No beans</option>' + S.beans.map(b => `<option value="${b.id}" ${p.beanId === b.id ? 'selected' : ''}>${esc(beanLabel(b))}</option>`).join('');
-  const setupOpts = S.setups.map(s => `<option value="${s.id}" ${st?.id === s.id ? 'selected' : ''}>${esc(setupLabel(s))}</option>`).join('');
+  const p = curPlan(), st = setupById(p.setupId) || curSetup(), g = grinderOf(st), bean = beanById(p.beanId);
+  const act = activeStep(), ms = tNow();
+  const anim = flow.shown !== act; flow.shown = act; heroK = null;
+  const gtxt = grindTxt(p, g);
+  const sum = [
+    bean ? beanLabel(bean) : (flow.noBean ? 'No beans' : ''),
+    st ? [g ? g.model : setupLabel(st), gtxt].filter(Boolean).join(' · ') : '',
+    S.setups.length && (bean || flow.noBean) ? `${p.dose ?? '–'}/${p.water ?? '–'} · ${p.temp ?? '–'}°` : '',
+    ms > 0 ? fmtTime(Math.floor(ms / 1000)) : '',
+    ''
+  ];
+  const titles = ['Beans', 'Gear', 'Recipe', 'Brew', 'Taste'];
+  const body = i => [stepBeans, stepGear, stepRecipe, stepBrew, stepTaste][i](p, st, g, bean);
   return `${bootNote ? `<div class="err">${esc(bootNote)}</div>` : ''}
-  <div class="brew-head">
-    ${gImg(grinderOf(st), 'gimg brew-gimg')}
-    <div class="eyebrow">${T.run ? 'Now brewing' : 'Up next'}</div>
-    <label class="picker big"><span>${esc(beanLabel(bean))}</span>${I.down}<select id="plan-bean" aria-label="Beans">${beanOpts}</select></label>
-    ${S.setups.length ? `<label class="picker small">for&nbsp;<b>${esc(setupLabel(st))}</b>${I.down}<select id="plan-setup" aria-label="Setup">${setupOpts}</select></label>` : ''}
-  </div>
-  ${S.setups.length ? '' : noSetupBlock()}
-  <div class="ring-wrap">
-    <svg viewBox="0 0 280 280" aria-hidden="true"><circle cx="140" cy="140" r="${R}" fill="none" stroke="var(--grp2)" stroke-width="16"/>
-    <circle id="ring-fg" class="${tNow() === 0 ? 'zero' : ''}" cx="140" cy="140" r="${R}" fill="none" stroke="var(--accent)" stroke-width="16" stroke-linecap="round" stroke-dasharray="${CIRC}" style="stroke-dashoffset:${CIRC * (1 - Math.min(1, tNow() / 1000 / (parseTime(p.targetTime) || 180)))}"/></svg>
-    <div class="ring-center"><div class="clock" id="clock" role="timer">00:00<small>.0</small></div><div class="ring-sub" id="ring-sub"></div></div>
-  </div>
-  <p class="step" aria-live="polite"><span id="step-main"></span><span id="step-sub" class="num"></span></p>
-  <div class="sec-h"><span>Recipe</span><button class="link" data-act="editPlan">Adjust</button></div>
-  <div class="grp rgrid">
-    <div><small>Coffee</small><span>${p.dose ?? '–'}<i>g</i></span></div>
-    <div><small>Water</small><span>${p.water ?? '–'}<i>g</i></span></div>
-    <div><small>Ratio</small><span>${ratio(p.dose, p.water)}</span></div>
-    <div><small>Grind</small><span>${esc(p.grind || '–')}${p.grind && gUnit(grinderOf(st)) ? `<i>${gUnit(grinderOf(st))}</i>` : ''}</span></div>
-    <div><small>Temp</small><span>${p.temp ?? '–'}<i>°C</i></span></div>
-    <div><small>Bloom</small><span>${p.bloomTime ?? '–'}<i>s</i></span></div>
-  </div>
-  <p class="foot">${esc(p.source || '')}${S.prefs.plan ? ` · <button class="link" data-act="clearPlan" style="font-size:13px">Reset</button>` : ''}</p>
-  ${tip ? `<div class="sec-h"><span>${tip.rule ? 'Quick tip' : 'AI tip'}</span></div><div class="grp tip"><strong>${esc(tip.summary || '')}</strong>${tip.changes?.length ? `<ul>${tip.changes.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}</div>` : ''}
-  <div class="sec-h"><span>Pours</span><span class="num">${p.water ?? 250} g total</span></div>
-  <div class="grp pours">${pours.map(x => `<div class="pour"><div class="pour-top"><span>${x.label}${x.at ? ' · ' + fmtTime(x.at) : ''}</span><b class="num">${x.g} g</b></div><div class="bar" style="width:${Math.max(18, x.g / maxG * 100)}%"><div class="fill"></div></div></div>`).join('')}</div>
-  <button class="link center" data-act="newBrew">Log a brew without the timer</button>`;
+  <div class="fl-head"><div><div class="fl-eyebrow">${T.run ? 'Now brewing' : 'Brew ' + String(S.brews.length + 1).padStart(4, '0')}</div><h1 class="fl-title">Next cup</h1></div>${settingsBtn}</div>
+  <div class="fl">${titles.map((t, i) => {
+    const on = i === act, done = !on && sum[i];
+    return `<section class="fl-step ${on ? 'on' : ''} ${done ? 'done' : ''}">
+      <button class="fl-sh" ${done ? `data-act="step" data-id="${i}"` : 'tabindex="-1"'}><span class="fl-n">0${i + 1}</span><span class="fl-t">${t}</span>${done ? `<span class="fl-sum">${esc(sum[i])}</span><span class="fl-ch">Change</span>` : ''}</button>
+      ${on ? `<div class="fl-body${anim ? ' rise' : ''}">${body(i)}</div>` : ''}</section>`;
+  }).join('')}</div>`;
+}
+function stepBeans(p){
+  const rows = S.beans.map(b => {
+    const d = daysOff(b.roastDate), on = p.beanId === b.id;
+    return `<div class="fl-row"><button class="fl-opt" data-act="pickBean" data-id="${b.id}" aria-pressed="${on}">
+      ${b.photo ? `<img class="thumb" src="${esc(b.photo)}" alt="">` : `<span class="thumb ph" aria-hidden="true">${esc((b.name||b.origin||'?').slice(0,1).toUpperCase())}</span>`}
+      <span class="c-main"><span class="fl-nm">${esc(beanLabel(b))}</span><span class="fl-mt">${esc([b.roaster, b.origin, b.process].filter(Boolean).join(' · ') || 'No details yet')}${d != null ? ` · ${d} days` : ''}</span></span>
+      ${on ? '<span class="fl-tick" aria-hidden="true">✓</span>' : ''}</button><button class="fl-edit" data-act="bean" data-id="${b.id}">Edit</button></div>`; }).join('');
+  return `${rows || '<p class="fl-why">No beans yet. Scan the bag you’re brewing now.</p>'}
+    <button class="fl-btn ol" data-act="scan">Scan a bag</button>
+    <p class="fl-links"><button class="link" data-act="pick">Choose a photo</button><button class="link" data-act="addBean">Add by hand</button>${S.beans.length ? '' : '<button class="link" data-act="noBean">Skip</button>'}</p>`;
+}
+function stepGear(p, cur){
+  const rows = S.setups.map(s => `<div class="fl-row"><button class="fl-opt" data-act="pickSetup" data-id="${s.id}" aria-pressed="${cur?.id === s.id}">
+      ${gImg(grinderOf(s), 'gimg thumb-g')}<span class="c-main"><span class="fl-nm">${esc(setupLabel(s))}</span><span class="fl-mt">${esc(setupGear(s))}</span></span>
+      ${cur?.id === s.id ? '<span class="fl-tick" aria-hidden="true">✓</span>' : ''}</button><button class="fl-edit" data-act="editSetup" data-id="${s.id}">Edit</button></div>`).join('');
+  return `${rows || '<p class="fl-why">Add your brewer and grinder. Grind settings and recipes follow your grinder’s own dial.</p>'}
+    <button class="fl-btn ol" data-act="addSetup">Add setup</button>`;
+}
+function stepRecipe(p, st, g){
+  const last = S.brews[0], tip = last?.advice && !S.prefs.plan ? last.advice : null;
+  const row = (l, v) => `<div class="fl-kv"><span>${l}</span><b>${v}</b></div>`;
+  return `<p class="fl-why">${esc(p.source || '')}${S.prefs.plan ? ` · <button class="link" data-act="clearPlan">Reset</button>` : ''}</p>
+    ${tip ? `<div class="fl-tip"><div class="fl-eyebrow">${tip.rule ? 'Quick tip' : 'AI tip'}</div><strong>${esc(tip.summary || '')}</strong>${tip.changes?.length ? `<ul>${tip.changes.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}</div>` : ''}
+    <div class="fl-kvs">${row('Coffee', `${p.dose ?? '–'} g`)}${row('Water', `${p.water ?? '–'} g · ${ratio(p.dose, p.water)}`)}${row('Grind', esc(p.grind || '–') + (p.grind && gUnit(g) ? ' ' + gUnit(g) : ''))}${row('Temp', `${p.temp ?? '–'}°`)}${row('Bloom', `${p.bloomWater ?? Math.round((p.dose || 15) * 3)} g · ${p.bloomTime ?? 45} s`)}${row('Target', fmtTime(parseTime(p.targetTime) || 180))}</div>
+    <div class="fl-two"><button class="fl-btn" data-act="useRecipe">Use this recipe</button><button class="fl-btn ol" data-act="editPlan">Adjust</button></div>`;
+}
+function stepBrew(p){
+  const ph = phases(p), L = ph.list, ms = tNow();
+  const ctl = T.run ? `<div class="fl-two"><button class="fl-btn" data-act="timerStop">Stop</button><button class="fl-btn ol" data-act="timerSkip">Skip</button></div>`
+    : ms > 0 ? `<div class="fl-two"><button class="fl-btn" data-act="step" data-id="4">Taste · ${fmtTime(Math.floor(ms/1000))}</button><button class="fl-btn ol" data-act="timerToggle">Resume</button></div><p class="fl-links"><button class="link" data-act="timerReset">Reset timer</button></p>`
+    : `<button class="fl-btn" data-act="timerToggle">Start</button><p class="fl-links"><button class="link" data-act="newBrew">Log without the timer</button></p>`;
+  return `<div class="hero-t" aria-live="polite">
+      <div class="fl-eyebrow" id="h-l"></div>
+      <div class="h-t" id="h-t" role="timer">0:00</div>
+      <div class="h-s" id="h-s"></div><div class="h-u" id="h-u"></div>
+      <div class="h-track"><i id="h-f"></i>${L.slice(1).map(x => `<b style="left:${(x.at / ph.total * 100).toFixed(2)}%"></b>`).join('')}</div>
+      <div class="h-marks">${L.slice(0, -1).map((x, j) => `<span data-m="${j}" style="left:${(x.at / ph.total * 100).toFixed(2)}%">${x.total}</span>`).join('')}<span data-m="${L.length - 1}" style="right:0">${fmtTime(ph.target)}</span></div>
+      <div class="h-next"><span>Next</span><span id="h-n"></span></div>
+    </div>${ctl}`;
+}
+function stepTaste(){
+  return `<div class="rating" id="t-rating">${[1,2,3,4,5].map(i => `<button type="button" data-act="tRate" data-id="${i}" aria-label="${i} star${i>1?'s':''}" class="${i <= taste.rating ? 'on' : ''}">★</button>`).join('')}</div>
+    <div class="pick" id="t-tags">${TAGS.map(t => `<button type="button" data-act="tTag" data-id="${t}" class="${taste.tags.includes(t) ? 'on' : ''}" aria-pressed="${taste.tags.includes(t)}">${t}</button>`).join('')}</div>
+    <textarea id="t-notes" class="fl-notes" aria-label="Tasting notes" placeholder="Notes: stone fruit, tea-like, sharp finish…">${esc(taste.notes)}</textarea>
+    <button class="fl-btn" data-act="tLog">Log brew</button>
+    <p class="fl-links"><button class="link" data-act="tMore">More details</button></p>`;
 }
 let jseg = 'all';
 function journalBody(){
@@ -968,42 +1084,14 @@ function viewJournal(){
   <div class="grp stats"><div><b>${S.brews.length}</b><span>Brews</span></div><div><b>${avg}</b><span>Avg rating</span></div><div><b>${S.beans.length}</b><span>Beans</span></div></div>
   <div id="jbody">${journalBody()}</div>`;
 }
-function viewBeans(){
-  return `<h1 class="lt">Beans</h1>
-  <button class="scan" data-act="scan"><span class="ico">${I.cam}</span><span class="c-main"><span class="c-title" style="font-weight:600">Scan a bag or label</span><span class="c-sub">${window.claude ? 'AI reads it and suggests a recipe for ' + esc(setupLabel(curSetup())) : 'Your phone reads the label and fills in what it finds'}</span></span>${I.chev}</button>
-  <p class="foot" style="padding-top:8px"><button class="link" data-act="pick" style="font-size:13px">Choose a photo from your library</button></p>
-  <div class="sec-h"><span>Your beans</span><button class="link" data-act="addBean">Add by hand</button></div>
-  <div class="grp">${S.beans.length ? S.beans.map(b => {
-    const d = daysOff(b.roastDate), n = S.brews.filter(x => x.beanId === b.id).length;
-    return `<button class="cell" data-act="bean" data-id="${b.id}">
-      ${b.photo ? `<img class="thumb" src="${esc(b.photo)}" alt="">` : `<span class="thumb ph" aria-hidden="true">${esc((b.name||b.origin||'?').slice(0,1).toUpperCase())}</span>`}
-      <span class="c-main"><span class="c-title">${esc(beanLabel(b))}</span>
-      <span class="c-sub">${esc([b.roaster, b.origin, b.process].filter(Boolean).join(' · ') || 'No details yet')}</span>
-      <span class="c-sub">${d != null ? `${d} days off roast · ` : ''}${n} brew${n === 1 ? '' : 's'}</span></span>${I.chev}</button>`; }).join('') : '<div class="empty">No beans yet. Scan the bag you’re brewing now.</div>'}</div>`;
-}
-function viewGear(){
-  const cur = curSetup();
-  return `<div class="lt-row"><h1 class="lt">Gear</h1><button class="iconbtn" data-act="settings" aria-label="Settings and version"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg></button></div>
-  ${S.setups.length ? '' : noSetupBlock()}
-  ${S.setups.length ? `<div class="sec-h"><span>Setups</span></div><div class="grp">${S.setups.map(s => `<div class="cellw"><button class="cell" data-act="useSetup" data-id="${s.id}" aria-pressed="${cur?.id === s.id}">
-      ${gImg(grinderOf(s), 'gimg thumb-g')}<span class="c-main"><span class="c-title">${esc(setupLabel(s))}</span><span class="c-sub">${esc(setupGear(s))}</span></span>
-      ${cur?.id === s.id ? I.check : ''}</button><button class="link" style="padding:0 16px 0 4px" data-act="editSetup" data-id="${s.id}">Edit</button></div>`).join('')}
-    <button class="cell" data-act="addSetup"><span class="c-title acc">Add setup</span></button></div>
-    <p class="foot">Tap a setup to brew with it. Grind sliders, tips and recipes follow the grinder in the setup with the check mark. Everyone who opens this app keeps their own setups and brews.</p>` : ''}
-  <div class="sec-h"><span>Data</span></div>
-  <div class="grp"><div class="cell"><span class="c-main"><span class="c-title">Sync</span></span><span class="c-val">${syncState === 'cloud' ? 'Your Claude account' : syncState === 'local' ? 'This device only' : 'Loading…'}</span></div></div>
-  <p class="foot">${syncState === 'cloud' ? 'Your brews, beans and gear are the same on your iPhone and your Mac.' : syncState === 'local' ? (window.claude ? 'Open this page signed in to Claude to sync between devices.' : 'Saved in this browser on this device. Clearing Safari’s website data removes it.') : ''}</p>`;
-}
-
 let tab = 'brew';
 function render(){
   const v = $('#view');
   if(!loaded) v.innerHTML = '<div class="empty" style="margin-top:40vh"><span class="spin"></span>Loading your brews…</div>';
-  else v.innerHTML = tab === 'journal' ? viewJournal() : tab === 'beans' ? viewBeans() : tab === 'gear' ? viewGear() : viewBrew();
-  v.classList.toggle('has-dock', tab === 'brew');
+  else v.innerHTML = tab === 'journal' ? viewJournal() : viewBrew();
+  v.classList.remove('has-dock');
   document.querySelectorAll('nav a').forEach(a => { if(a.dataset.tab === tab) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
-  const pb = $('#plan-bean'); if(pb) pb.onchange = e => { const p = curPlan(); setPlan({ ...p, beanId: e.target.value || null }, p.source); };
-  const ps = $('#plan-setup'); if(ps) ps.onchange = e => switchSetup(e.target.value);
+  const tn = $('#t-notes'); if(tn) tn.oninput = e => { taste.notes = e.target.value; };
   paintTimer();
 }
 let enterT = 0;
@@ -1014,12 +1102,13 @@ function animateEnter(){
 }
 function route(){
   const h = location.hash.slice(1), prev = tab;
-  tab = ['brew','journal','beans','gear'].includes(h) ? h : 'brew';
+  if(h === 'beans' || h === 'gear'){ flow.step = h === 'beans' ? 0 : 1; history.replaceState(null, '', '#brew'); }
+  tab = h === 'journal' ? 'journal' : 'brew';
   render(); window.scrollTo(0,0);
   if(prev !== tab && loaded) animateEnter();
 }
 window.addEventListener('hashchange', route);
-function goBrew(){ closeSheet(); if(location.hash !== '#brew') location.hash = 'brew'; else { render(); window.scrollTo(0,0); animateEnter(); } }
+function goBrew(){ flow.step = null; closeSheet(); if(location.hash !== '#brew') location.hash = 'brew'; else { render(); window.scrollTo(0,0); animateEnter(); } }
 
 /* ---------- plan sheet ---------- */
 function openPlanForm(){
@@ -1066,7 +1155,7 @@ function openBrewForm(pre = {}, editId = null){
     const strip = x => JSON.stringify({ ...x, advice:null });
     if(!old || strip(old) !== strip(b)) b.advice = null;
     save(b);
-    if(!old){ stopTimer(true); if(S.prefs.plan) save({ ...S.prefs, plan:null }); }
+    if(!old){ stopTimer(true); resetFlow(); if(S.prefs.plan) save({ ...S.prefs, plan:null }); }
     openBrewDetail(b.id, !old);
   };
 }
@@ -1155,7 +1244,7 @@ function openBeanForm(pre = {}, editId = null, note = ''){
       process: $('#b-process').value.trim(), roastLevel: $('#b-roast').value, roastDate: $('#b-date').value,
       varietal: $('#b-var').value.trim(), altitude: $('#b-alt').value.trim(), flavourNotes: $('#b-flav').value.trim(),
       notes: $('#b-notes').value.trim(), photo: draftBean.photo, recipes: draftBean.recipes };
-    save(b); openBeanDetail(b.id);
+    save(b); if(!old){ const p = curPlan(); flow.step = null; flow.noBean = false; setPlan({ ...p, beanId: b.id }, p.source); } openBeanDetail(b.id);
   };
 }
 function openBeanDetail(id){
@@ -1447,9 +1536,26 @@ function armDelete(btn, fn){
 const ACT = {
   timerToggle(){
     if(T.run) stopTimer(false);
-    else { T.start = Date.now(); T.run = true; document.body.classList.add('timing'); restartAnim($('.ring-wrap'), 'kick'); T.raf = requestAnimationFrame(loop); }
-    const e = document.querySelector('.eyebrow'); if(e) e.textContent = T.run ? 'Now brewing' : 'Up next'; paintTimer(); },
-  timerReset(){ stopTimer(true); restartAnim($('.ring-wrap'), 'kick'); paintTimer(); },
+    else { T.start = Date.now(); T.run = true; document.body.classList.add('timing'); T.raf = requestAnimationFrame(loop); }
+    flow.step = 3; render(); },
+  timerStop(){ stopTimer(false); goStep(4); },
+  timerSkip(){ if(!T.run) return; const L = phases(curPlan()).list, nx = L[phaseIdx(L, tNow() / 1000) + 1]; if(!nx) return; T.acc = nx.at * 1000; T.start = Date.now(); paintTimer(); },
+  timerReset(){ stopTimer(true); flow.step = 3; render(); },
+  step(i){ goStep(+i); },
+  pickBean(id){ const p = curPlan(); flow.noBean = false; const n = S.setups.length ? 2 : 1; flow.step = n; setPlan({ ...p, beanId: id }, p.source); goStep(n); },
+  noBean(){ flow.noBean = true; goStep(S.setups.length ? 2 : 1); },
+  pickSetup(id){ flow.step = 2; switchSetup(id); goStep(2); },
+  useRecipe(){ goStep(3); },
+  tRate(i){ taste.rating = taste.rating === +i ? 0 : +i; document.querySelectorAll('#t-rating button').forEach((b, k) => { const on = k < taste.rating; if(on && !b.classList.contains('on')) setTimeout(() => restartAnim(b, 'pop'), k * 35); b.classList.toggle('on', on); }); },
+  tTag(t, btn){ const on = taste.tags.includes(t); taste.tags = on ? taste.tags.filter(x => x !== t) : [...taste.tags, t]; btn.classList.toggle('on', !on); btn.setAttribute('aria-pressed', String(!on)); },
+  tLog(){
+    const p = curPlan(), st = setupById(p.setupId) || curSetup(), ms = tNow();
+    const b = { id: newId('brew'), kind:'brew', date: new Date().toISOString(), setupId: st?.id || null, beanId: p.beanId || null,
+      dose:p.dose, water:p.water, grind:p.grind, temp:p.temp, bloomWater:p.bloomWater, bloomTime:p.bloomTime,
+      time: ms > 0 ? Math.round(ms / 1000) : null, rating: taste.rating, tags: [...taste.tags], notes: taste.notes.trim(), advice:null };
+    stopTimer(true); resetFlow(); save(b); if(S.prefs.plan) save({ ...S.prefs, plan:null });
+    openBrewDetail(b.id, true); },
+  tMore(){ openBrewForm({ ...curPlan(), time: tNow() > 0 ? Math.round(tNow() / 1000) : null, rating: taste.rating, tags: taste.tags, notes: taste.notes }); },
   logTimed(){ openBrewForm({ ...curPlan(), time: Math.round(tNow()/1000) }); },
   newBrew(){ openBrewForm({ ...curPlan(), time: tNow() > 10000 ? Math.round(tNow()/1000) : null }); },
   again(id){ const b = brewById(id) || S.brews[0]; if(!b) return; setPlan({ ...brewFrom(b), targetTime: b.time ? fmtTime(b.time) : '3:00' }, 'Brewing again: ' + fmtDate(b.date)); goBrew(); },
