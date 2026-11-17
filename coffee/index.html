@@ -386,6 +386,38 @@ body.sheet-up #dock{opacity:0;pointer-events:none}
 .dk-wrap .ghint{padding:2px 2px 10px}
 .gwrap::before{display:none}
 @media (prefers-reduced-motion:reduce){.dk,.dk-handle{transition:opacity .2s}}
+/* ---------- journal calendar + bean palettes ---------- */
+.seg.seg3{grid-template-columns:repeat(3,1fr)}
+.seg.seg3 .seg-thumb{width:calc((100% - 6px) / 3)}
+.seg.seg3[data-on="top"] .seg-thumb{transform:translateX(100%)}
+.seg.seg3[data-on="cal"] .seg-thumb{transform:translateX(200%)}
+.pal{display:flex;flex:none;width:44px;height:44px}
+.pal i{flex:1}
+.pal.tall{width:12px;flex-direction:column}
+.pal-row{display:flex;height:28px;margin-top:10px}
+.pal-row i{flex:1}
+.cal{background:var(--grp);padding:8px 10px 12px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;padding:2px 0 10px}
+.cal-head .iconbtn{margin:0;width:40px;height:40px;font-size:20px;color:var(--label)}
+.cal-m{font:italic 400 28px/1 var(--serif)}
+.cal-dow,.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-dow span{text-align:center;font-size:11px;letter-spacing:.06em;color:var(--ter);padding-bottom:6px}
+.cal-d,.cal-e{aspect-ratio:1;position:relative}
+.cal-d{appearance:none;border:0;padding:0;background:#0a0a0a;color:var(--ter);font:inherit;overflow:hidden}
+.cal-d.has{color:var(--label);cursor:pointer}
+.cal-f{position:absolute;inset:0;display:flex}
+.cal-c{flex:1;display:flex;flex-direction:column}
+.cal-c i{flex:1}
+.cal-n{position:absolute;left:4px;top:3px;font:11px var(--mono);line-height:1}
+.cal-d.has .cal-n{background:#000;padding:2px 3px;left:0;top:0}
+.cal-x{position:absolute;right:0;bottom:0;background:#000;font:10px var(--mono);padding:2px 3px;line-height:1}
+.cal-d.today{box-shadow:inset 0 0 0 1px var(--sec)}
+.cal-d.sel{box-shadow:inset 0 0 0 2px var(--label)}
+.cal-d.has{transition:transform .1s ease-out}
+.cal-d.has:active{transform:scale(.94)}
+.cal-grid .cal-d.has{animation:calin .45s var(--spring-soft) both}
+@keyframes calin{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.cal-grid .cal-d.has{animation:flfade .2s ease-out both}}
 /* ---------- brew flow (checklist + hero timer) ---------- */
 .fl-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:22px 4px 14px}
 .fl-head .iconbtn{margin-bottom:4px}
@@ -529,7 +561,7 @@ function ingest(docs){
   S.brews.sort((a,b) => (b.date||'').localeCompare(a.date||''));
   S.beans.sort((a,b) => (b.created||0) - (a.created||0));
   S.setups.sort((a,b) => (a.created||0) - (b.created||0));
-  const first = !loaded; loaded = true; render(); if(first) animateEnter();
+  const first = !loaded; loaded = true; render(); if(first){ animateEnter(); setTimeout(backfillPalettes, 800); }
 }
 function allDocs(){ return [...S.setups, ...S.beans, ...S.brews, S.prefs]; }
 function localStore(){
@@ -652,7 +684,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.9 · 17 Nov 2026';
+const APP_VERSION = '1.10 · 17 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -1214,7 +1246,7 @@ function stepBeans(p){
   const rows = S.beans.map(b => {
     const d = daysOff(b.roastDate), on = p.beanId === b.id;
     return `<div class="fl-row"><button class="fl-opt" data-act="pickBean" data-id="${b.id}" aria-pressed="${on}">
-      ${b.photo ? `<img class="thumb" src="${esc(b.photo)}" alt="">` : `<span class="thumb ph" aria-hidden="true">${esc((b.name||b.origin||'?').slice(0,1).toUpperCase())}</span>`}
+      ${b.photo ? `<img class="thumb" src="${esc(b.photo)}" alt="">` : palHTML(beanPalette(b))}
       <span class="c-main"><span class="fl-nm">${esc(beanLabel(b))}</span><span class="fl-mt">${esc([b.roaster, b.origin, b.process].filter(Boolean).join(' · ') || 'No details yet')}${d != null ? ` · ${d} days` : ''}</span></span>
       ${on ? '<span class="fl-tick" aria-hidden="true">✓</span>' : ''}</button><button class="fl-edit" data-act="bean" data-id="${b.id}">Edit</button></div>`; }).join('');
   return `${rows || '<p class="fl-why">No beans yet. Scan the bag you’re brewing now.</p>'}
@@ -1257,10 +1289,83 @@ function stepTaste(){
     <button class="fl-btn" data-act="tLog">Log brew</button>
     <p class="fl-links"><button class="link" data-act="tMore">More details</button></p>`;
 }
+/* ---------- bean palettes: 3–5 colours pulled from the bag photo ----------
+   centre crop → 64 px → 4-bit colour buckets, scored by count × saturation so the label's colours beat
+   the table, then picked greedily so no two are close. No photo: muted tones from the flavour notes. */
+function paletteFromImage(src){
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const N = 64, c = document.createElement('canvas'); c.width = c.height = N;
+        const x = c.getContext('2d', { willReadFrequently:true }), w = img.naturalWidth, h = img.naturalHeight, s = Math.min(w, h) * .8;
+        x.drawImage(img, (w - s) / 2, (h - s) / 2, s, s, 0, 0, N, N);
+        const d = x.getImageData(0, 0, N, N).data, B = new Map();
+        for(let i = 0; i < d.length; i += 4){ if(d[i+3] < 128) continue;
+          const k = (d[i] >> 4) << 8 | (d[i+1] >> 4) << 4 | (d[i+2] >> 4), o = B.get(k) || [0,0,0,0];
+          o[0] += d[i]; o[1] += d[i+1]; o[2] += d[i+2]; o[3]++; B.set(k, o); }
+        const cols = [...B.values()].map(([r,g,b,n]) => { r /= n; g /= n; b /= n; const mx = Math.max(r,g,b), mn = Math.min(r,g,b), sat = mx ? (mx - mn) / mx : 0; return { r, g, b, score: n * (1 + sat * 2) }; }).sort((a, b) => b.score - a.score);
+        const pick = [];
+        for(const k of cols){ if(pick.length >= 5) break; if(pick.every(p => Math.hypot(p.r - k.r, p.g - k.g, p.b - k.b) > 56)) pick.push(k); }
+        res(pick.map(p => '#' + [p.r, p.g, p.b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('')));
+      } catch(e){ res(null); }
+    };
+    img.onerror = () => res(null); img.src = src;
+  });
+}
+const NOTE_TONES = [[/berr|blackcurrant|cassis|cherry|raspberr|strawberr/,'#9a5b6b'],[/citrus|lemon|lime|orange|grapefruit|bergamot/,'#c9b45a'],[/choc|cocoa|cacao/,'#6b4a3a'],[/flor|jasmine|rose|lavender|hibiscus/,'#b59ab8'],[/peach|apricot|stone|plum|nectarine/,'#c48f6a'],[/caramel|toffee|sugar|honey|maple|molasses/,'#b0844f'],[/nut|almond|hazelnut|pecan/,'#8a7358'],[/tea|black tea|green|herb/,'#8f9a6e'],[/tropical|mango|pineapple|passion|lychee/,'#c9a35a'],[/grape|wine|winey/,'#7a5a78'],[/apple|pear/,'#a8b07a']];
+function paletteFromNotes(b){
+  const t = [b.flavourNotes, b.notes, b.process, b.name].filter(Boolean).join(' ').toLowerCase(), out = [];
+  NOTE_TONES.forEach(([re, c]) => { if(re.test(t) && out.length < 4) out.push(c); });
+  return out.length ? out : ['#5e5e5e', '#3a3a3a'];
+}
+const beanPalette = b => b?.palette?.length ? b.palette : b ? paletteFromNotes(b) : ['#2a2a2a'];
+const palHTML = (p, cls = 'pal') => `<span class="${cls}" aria-hidden="true">${p.map(c => `<i style="background:${c}"></i>`).join('')}</span>`;
+async function ensurePalette(id){
+  const b = beanById(id); if(!b?.photo || (b.palette && b.paletteOf === b.photo.length)) return;
+  const p = await paletteFromImage(b.photo); const now = beanById(id);
+  if(p && p.length && now) save({ ...now, palette: p, paletteOf: now.photo.length });
+}
+let palDone = false;
+async function backfillPalettes(){ if(palDone) return; palDone = true; for(const b of [...S.beans]) await ensurePalette(b.id); }
+
+/* ---------- journal calendar: each brew day filled with the palette of the beans you brewed ---------- */
+const dayKey = d => { const t = new Date(d); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; };
+let calMonth = (() => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), 1); })(), calSel = null;
+function calendarBody(){
+  const y = calMonth.getFullYear(), m = calMonth.getMonth(), days = new Date(y, m + 1, 0).getDate(), off = (new Date(y, m, 1).getDay() + 6) % 7, today = dayKey(new Date());
+  const byDay = {}; S.brews.forEach(b => { if(!b.date) return; const k = dayKey(b.date); (byDay[k] = byDay[k] || []).push(b); });
+  const inMonth = S.brews.filter(b => b.date && new Date(b.date).getFullYear() === y && new Date(b.date).getMonth() === m);
+  const cells = [];
+  for(let i = 0; i < off; i++) cells.push('<span class="cal-e"></span>');
+  for(let d = 1; d <= days; d++){
+    const k = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`, bs = byDay[k] || [];
+    const beans = [...new Set(bs.map(b => b.beanId || ''))].slice(0, 3);
+    const fill = beans.length ? `<span class="cal-f">${beans.map(id => palHTML(beanPalette(beanById(id)), 'cal-c')).join('')}</span>` : '';
+    cells.push(`<button class="cal-d${bs.length ? ' has' : ''}${k === today ? ' today' : ''}${k === calSel ? ' sel' : ''}" ${bs.length ? `data-act="calDay" data-id="${k}"` : 'tabindex="-1"'} aria-label="${d} ${calMonth.toLocaleString('en-GB', { month:'long' })}${bs.length ? ', ' + bs.length + ' brew' + (bs.length > 1 ? 's' : '') : ''}">${fill}<span class="cal-n">${d}</span>${bs.length > 1 ? `<span class="cal-x">${bs.length}</span>` : ''}</button>`);
+  }
+  const tried = {}; inMonth.forEach(b => { const k = b.beanId || ''; (tried[k] = tried[k] || []).push(b); });
+  const triedRows = Object.entries(tried).sort((a, b) => b[1].length - a[1].length).map(([id, bs]) => {
+    const bean = beanById(id), first = bs.map(b => b.date).sort()[0], best = Math.max(0, ...bs.map(b => b.rating || 0));
+    return `<button class="cell" ${bean ? `data-act="bean" data-id="${id}"` : ''}>${palHTML(beanPalette(bean), 'pal tall')}<span class="c-main"><span class="c-title">${esc(bean ? beanLabel(bean) : 'No beans picked')}</span><span class="c-sub">${bs.length} brew${bs.length > 1 ? 's' : ''} · first ${new Date(first).toLocaleDateString('en-GB', { day:'numeric', month:'short' })}${best ? ' · best ' + stars(best) : ''}</span></span></button>`; }).join('');
+  const sel = calSel && byDay[calSel];
+  const everTried = new Set(S.brews.map(b => b.beanId).filter(Boolean)).size;
+  return `<div class="cal">
+      <div class="cal-head"><button class="iconbtn" data-act="calMove" data-id="-1" aria-label="Previous month">‹</button><span class="cal-m">${calMonth.toLocaleString('en-GB', { month:'long', year:'numeric' })}</span><button class="iconbtn" data-act="calMove" data-id="1" aria-label="Next month">›</button></div>
+      <div class="cal-dow">${['M','T','W','T','F','S','S'].map(x => `<span>${x}</span>`).join('')}</div>
+      <div class="cal-grid">${cells.join('')}</div>
+      <p class="foot">${inMonth.length} brew${inMonth.length === 1 ? '' : 's'} this month · ${Object.keys(tried).filter(Boolean).length} bean${Object.keys(tried).filter(Boolean).length === 1 ? '' : 's'} · ${everTried} tried in total</p>
+    </div>
+    ${sel ? `<div class="sec-h"><span>${new Date(calSel).toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' })}</span><button class="link" data-act="calDay" data-id="">Clear</button></div><div class="grp">${sel.map(b => rowBrew(b)).join('')}</div>` : ''}
+    <div class="sec-h"><span>Beans tried this month</span></div>
+    <div class="grp">${triedRows || '<div class="empty">No brews this month yet.</div>'}</div>`;
+}
+
 let jseg = 'all';
 function journalBody(){
   const rated = S.brews.filter(b => b.rating);
   let body;
+  if(jseg === 'cal') return calendarBody();
   if(jseg === 'top'){
     const top = [...rated].filter(b => b.rating >= 4).sort((a,b) => b.rating - a.rating || (b.date||'').localeCompare(a.date||'')).slice(0, 15);
     const perBean = S.beans.map(bean => rated.filter(b => b.beanId === bean.id).sort((a,b) => b.rating - a.rating || (b.date||'').localeCompare(a.date||''))[0]).filter(Boolean).sort((a,b) => b.rating - a.rating);
@@ -1275,7 +1380,7 @@ function viewJournal(){
   const rated = S.brews.filter(b => b.rating);
   const avg = rated.length ? (rated.reduce((a,b) => a + b.rating, 0) / rated.length).toFixed(1) : '–';
   return `<h1 class="lt">Journal</h1>
-  <div class="seg" data-on="${jseg}" role="tablist"><span class="seg-thumb" aria-hidden="true"></span><button role="tab" aria-selected="${jseg === 'all'}" data-act="seg" data-id="all">All brews</button><button role="tab" aria-selected="${jseg === 'top'}" data-act="seg" data-id="top">Top rated</button></div>
+  <div class="seg seg3" data-on="${jseg}" role="tablist"><span class="seg-thumb" aria-hidden="true"></span><button role="tab" aria-selected="${jseg === 'all'}" data-act="seg" data-id="all">All</button><button role="tab" aria-selected="${jseg === 'top'}" data-act="seg" data-id="top">Top rated</button><button role="tab" aria-selected="${jseg === 'cal'}" data-act="seg" data-id="cal">Calendar</button></div>
   <div class="grp stats"><div><b>${S.brews.length}</b><span>Brews</span></div><div><b>${avg}</b><span>Avg rating</span></div><div><b>${S.beans.length}</b><span>Beans</span></div></div>
   <div id="jbody">${journalBody()}</div>`;
 }
@@ -1439,7 +1544,7 @@ function openBeanForm(pre = {}, editId = null, note = ''){
       process: $('#b-process').value.trim(), roastLevel: $('#b-roast').value, roastDate: $('#b-date').value,
       varietal: $('#b-var').value.trim(), altitude: $('#b-alt').value.trim(), flavourNotes: $('#b-flav').value.trim(),
       notes: $('#b-notes').value.trim(), photo: draftBean.photo, recipes: draftBean.recipes };
-    save(b); if(!old){ const p = curPlan(); flow.step = null; flow.noBean = false; setPlan({ ...p, beanId: b.id }, p.source); } openBeanDetail(b.id);
+    save(b); ensurePalette(b.id); if(!old){ const p = curPlan(); flow.step = null; flow.noBean = false; setPlan({ ...p, beanId: b.id }, p.source); } openBeanDetail(b.id);
   };
 }
 function openBeanDetail(id){
@@ -1450,6 +1555,7 @@ function openBeanDetail(id){
   const info = [['Process', b.process], ['Roast', b.roastLevel], ['Roast date', b.roastDate ? b.roastDate + (d != null ? ` · ${d} d` : '') : 'Unknown'], ['Varietal', b.varietal], ['Altitude', b.altitude], ['On the bag', b.flavourNotes]].filter(x => x[1]);
   openSheet('Beans', `
     ${b.photo ? `<img class="hero" src="${esc(b.photo)}" alt="Photo of the bag">` : ''}
+    ${palHTML(beanPalette(b), 'pal-row')}
     <h2 class="d-title">${esc(beanLabel(b))}</h2>
     <p class="d-sub">${esc([b.roaster, b.origin].filter(Boolean).join(' · ') || ' ')}</p>
     ${info.length ? `<div class="sec-h"><span>Details</span></div><div class="grp dgrid">${info.map(x => `<div><small>${x[0]}</small><span>${esc(x[1])}</span></div>`).join('')}</div>` : ''}
@@ -1926,6 +2032,8 @@ const ACT = {
     const s = $('.seg'); if(!s) return render();
     s.dataset.on = id; s.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.id === id)));
     const jb = $('#jbody'); jb.innerHTML = journalBody(); restartAnim(jb, 'swap'); },
+  calMove(d){ calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + +d, 1); calSel = null; const jb = $('#jbody'); if(jb) jb.innerHTML = journalBody(); },
+  calDay(k){ calSel = k && calSel !== k ? k : null; const jb = $('#jbody'); if(jb) jb.innerHTML = journalBody(); },
   brew(id){ openBrewDetail(id); },
   editBrew(id){ const b = brewById(id); if(b) openBrewForm(b, id); },
   delBrew(id, btn){ armDelete(btn, () => { remove('brew', id); closeSheet(); }); },

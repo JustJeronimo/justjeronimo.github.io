@@ -158,8 +158,34 @@ with sync_playwright() as p:
     pg.mouse.move(x, y); pg.mouse.down(); pg.mouse.move(x, y + 120, steps=4); pg.mouse.move(x, y + 300, steps=4); pg.mouse.up(); pg.wait_for_timeout(700)
     check('drag closes sheet', pg.evaluate("document.getElementById('sheet').hidden"))
 
+    # 5a. bean palettes from real bag photos + journal calendar
+    import base64, io
+    from PIL import Image as _I
+    def thumb(f):
+        im = _I.open(os.path.join(ROOT, 'drawdown', 'tests', 'labels', f)).convert('RGB'); im.thumbnail((360, 360)); bio = io.BytesIO(); im.save(bio, 'JPEG', quality=80)
+        return 'data:image/jpeg;base64,' + base64.b64encode(bio.getvalue()).decode()
+    pals = {f: pg.evaluate('src => paletteFromImage(src)', thumb(f)) for f in ['bombe.jpg', 'motto.jpg', 'sogongera.png']}
+    check('palette from bag photos', all(p and 3 <= len(p) <= 5 for p in pals.values()), str(pals))
+    pg.evaluate("""([a, b, c]) => {
+      const mk = (id, name, photo, notes) => save({ id, kind:'bean', created: Date.now(), name, photo, flavourNotes: notes });
+      mk('bean_b', 'Bombe', a); mk('bean_c', 'Motto', b); mk('bean_d', 'Sogongera', c, 'blackcurrant, hibiscus');
+      const days = [[3,'bean_b',4],[3,'bean_c',3],[6,'bean_c',5],[9,'bean_d',4],[12,'bean_b',3],[14,'bean_d',5],[16,'bean_a',3]];
+      days.forEach(([d, bean, r], i) => save({ id:'brew_c' + i, kind:'brew', date: new Date(2026, 10, d, 8).toISOString(), setupId:'setup_a', beanId: bean, dose:15, water:250, grind:'4.1', temp:94, time:180, rating:r, tags:[] }));
+    }""", [thumb('bombe.jpg'), thumb('motto.jpg'), thumb('sogongera.png')])
+    pg.wait_for_timeout(300)
+    pg.evaluate("Promise.all(S.beans.map(b => ensurePalette(b.id)))"); pg.wait_for_timeout(1200)
+    check('beans got palettes', all(pg.evaluate("S.beans.filter(b => b.photo).map(b => (b.palette||[]).length)")), str(pg.evaluate("S.beans.map(b => b.palette)")))
+    pg.goto(URL + '#journal'); pg.wait_for_timeout(700)
+    pg.evaluate("calMonth = new Date(2026, 10, 1)"); pg.click('[data-act=seg][data-id=cal]'); pg.wait_for_timeout(700)
+    check('calendar paints brew days', pg.locator('.cal-d.has').count() == 7 and pg.locator('.cal-d.has .cal-c').count() >= 8, str(pg.locator('.cal-d.has').count()))
+    pg.screenshot(path='/tmp/drawdown-calendar.png', full_page=True)
+    pg.click('.cal-d.has >> nth=0'); pg.wait_for_timeout(300)
+    check('tap a day lists its brews', pg.locator('#jbody .cell[data-act=brew]').count() == 2)
+    pg.click('[data-act=calMove][data-id="-1"]'); pg.wait_for_timeout(200)
+    check('month navigation', 'October' in pg.inner_text('.cal-m'))
+
     # 5. journal renders
-    pg.goto(URL + '#journal'); pg.wait_for_timeout(800); pg.screenshot(path='/tmp/drawdown-journal.png')
+    pg.goto(URL + '#journal'); pg.wait_for_timeout(800); pg.click('[data-act=seg][data-id=all]'); pg.wait_for_timeout(400); pg.screenshot(path='/tmp/drawdown-journal.png')
     check('journal lists brews', pg.locator('.cell[data-act=brew]').count() >= 2)
     # 5b. settings: version + update check
     pg.goto(URL + '#brew'); pg.wait_for_timeout(700)
