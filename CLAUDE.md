@@ -25,7 +25,7 @@ Features: setups (brewer, hand or electric grinder, kettle, filter); beans (scan
 ### Code
 
 - One file: `coffee/index.html` — vanilla JS, no build step, no dependencies. Plus `manifest.webmanifest` and `assets/` (icons, mark SVGs).
-- **Storage adapters:** `cloudStore` (Claude artifact `db`, per user at `data/users/<id>`) when `window.claude` exists; otherwise `localStorage` key `brewlog-v1`. On GitHub Pages there is no `window.claude`, so data is **per device/browser only** and AI is off (UI says so).
+- **Storage adapters:** `cloudStore` (Claude artifact `db`, per user at `data/users/<id>`) when `window.claude` exists; otherwise `localStorage` key `brewlog-v1`. On GitHub Pages there is no `window.claude`, so data is **per device/browser only** and AI is off. Photo reading there uses **on-device OCR** (Tesseract.js 5.1.1 from jsDelivr, loaded on first scan) + `parseLabel()` rules (origin/region/process/varietal/altitude/date/notes lists; biggest text line = name) + `starterRecipe()` from the grinder zone. Bean "Suggest a recipe" and next-brew tips use the rule-based versions.
 - Docs in one collection, `kind`: `setup` | `bean` | `brew` | `prefs`. `prefs.plan` is the recipe queued on the Brew screen; cleared after logging.
 - `curPlan()` priority: saved plan → last brew's advice → last brew → starter recipe from the grinder's V60 start.
 - `pourPlan()`: bloom + 3–4 pours, 30 s apart after bloom.

@@ -909,7 +909,7 @@ function viewJournal(){
 }
 function viewBeans(){
   return `<h1 class="lt">Beans</h1>
-  <button class="scan" data-act="scan"><span class="ico">${I.cam}</span><span class="c-main"><span class="c-title" style="font-weight:600">Scan a bag or label</span><span class="c-sub">${window.claude ? 'AI reads it and suggests a recipe for ' + esc(setupLabel(curSetup())) : 'Add a photo of the bag, then fill in the details'}</span></span>${I.chev}</button>
+  <button class="scan" data-act="scan"><span class="ico">${I.cam}</span><span class="c-main"><span class="c-title" style="font-weight:600">Scan a bag or label</span><span class="c-sub">${window.claude ? 'AI reads it and suggests a recipe for ' + esc(setupLabel(curSetup())) : 'Your phone reads the label and fills in what it finds'}</span></span>${I.chev}</button>
   <p class="foot" style="padding-top:8px"><button class="link" data-act="pick" style="font-size:13px">Choose a photo from your library</button></p>
   <div class="sec-h"><span>Your beans</span><button class="link" data-act="addBean">Add by hand</button></div>
   <div class="grp">${S.beans.length ? S.beans.map(b => {
@@ -1065,7 +1065,7 @@ function openBeanForm(pre = {}, editId = null, note = ''){
   openSheet(editId ? 'Edit beans' : 'New beans', `<form id="bean-form">
     ${note ? `<div class="err">${esc(note)}</div>` : ''}
     ${pre.photo ? `<img class="hero" src="${esc(pre.photo)}" alt="Photo of the bag">` : ''}
-    ${pre.fromScan ? '<p class="foot">Read from your photo. Check the details, then save.</p>' : ''}
+    ${pre.fromScan ? `<p class="foot">${AI ? 'Read from your photo.' : 'Read from your photo on your phone; it can miss things.'} Check the details, then save.</p>` : ''}
     <div class="sec-h"><span>Coffee</span></div>
     <div class="grp">
       ${frow('b-name','Name', pre.name, 'placeholder="e.g. Kochere"')}
@@ -1124,6 +1124,7 @@ function openBeanDetail(id){
 }
 async function beanRecipe(id){
   const b = beanById(id), st = curSetup(); if(!b || !st) return;
+  if(!AI){ const r = starterRecipe(b, st); r.at = Date.now(); await save({ ...b, recipes: { ...(b.recipes || {}), [st.id]: r } }); if(sheetOpen()) openBeanDetail(id); return; }
   const box = $('#recipe'); if(box) box.innerHTML = '<div class="grp tip"><span class="note"><span class="spin"></span>Working out a recipe…</span></div>';
   try {
     const r = await askJSON(recipePrompt(b, st), { modelTier:'default' }); r.at = Date.now();
@@ -1141,11 +1142,11 @@ async function onPhoto(file){
     const thumb = drawTo(img, 480).toDataURL('image/jpeg', 0.72);
     const big = await toBlob(drawTo(img, 1400), 0.85);
     if(!big) throw { message:'That photo couldn’t be prepared. Take a new one with the camera.' };
-    scanJob = { thumb, big, st };
+    scanJob = { thumb, big, st, img };
     const s = AI || await aiReady;
     let note = '';
-    if(!s) note = errMsg({ code:'unavailable' });
-    else if(typeof s.limits === 'function'){ const lim = await s.limits().catch(() => null); if(lim && lim.images === false) note = 'Photo reading isn’t available on this account. Fill in the details by hand.'; }
+    if(!s && window.claude) note = errMsg({ code:'unavailable' });
+    else if(s && typeof s.limits === 'function'){ const lim = await s.limits().catch(() => null); if(lim && lim.images === false) note = 'Photo reading isn’t available on this account. Fill in the details by hand.'; }
     showScanBox(note, !note);
   } catch(e){
     if(!sheetOpen()) return;
@@ -1156,12 +1157,15 @@ async function onPhoto(file){
 function showScanBox(note, canRead){
   const box = $('#scan-box'); if(!box || !scanJob) return;
   const st = scanJob.st;
-  box.innerHTML = `${note ? `<div class="err">${esc(note)}</div>` : `<div class="grp tip"><span class="note">AI reads the label${st ? ' and suggests a starting recipe for ' + esc(setupLabel(st)) : ''}. The first time, Claude asks you to allow it.</span></div>`}
+  const intro = AI ? `AI reads the label${st ? ' and suggests a starting recipe for ' + esc(setupLabel(st)) : ''}. The first time, Claude asks you to allow it.`
+    : `Your phone reads the text on the label and fills in what it finds${st ? ', with a starting recipe for ' + esc(setupLabel(st)) : ''}. Check the details after.`;
+  box.innerHTML = `${note ? `<div class="err">${esc(note)}</div>` : `<div class="grp tip"><span class="note">${intro}</span></div>`}
     <div class="btn-row">${canRead ? '<button class="btn go" data-act="readLabel">Read label</button>' : ''}<button class="btn" data-act="scanManual">Fill in by hand</button></div>`;
 }
 function readLabel(btn){
   const job = scanJob; if(!job) return;
   if(btn) btn.disabled = true;
+  if(!AI) return ocrRead(job);
   /* askJSON is called synchronously inside the tap, so Claude's permission prompt can show */
   const run = askJSON(scanPrompt(job.st), { images:[job.big], modelTier:'default' });
   const box = $('#scan-box'); if(box) box.innerHTML = '<div class="grp tip"><span class="note"><span class="spin"></span>Reading the label…</span></div>';
@@ -1175,6 +1179,86 @@ function readLabel(btn){
     if(!sheetOpen() || scanJob !== job) return;
     showScanBox(errMsg(e) + (e && e.code && !['unavailable','not_granted','rate_limited'].includes(e.code) ? ` (${e.code})` : ''), e?.code !== 'unavailable');
   });
+}
+
+
+/* ---------- on-device label reading (web version, no AI) ----------
+   Tesseract.js reads the text; simple rules pick out origin, process, roast, dates, varietal, altitude and notes. */
+const OCR_SRC = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+let ocrLib = null;
+function loadOcr(){
+  if(window.Tesseract) return Promise.resolve(window.Tesseract);
+  if(ocrLib) return ocrLib;
+  ocrLib = new Promise((res, rej) => { const s = document.createElement('script'); s.src = OCR_SRC; s.onload = () => res(window.Tesseract); s.onerror = () => { ocrLib = null; rej(new Error('The label reader couldn’t load. Check your connection and try again.')); }; document.head.appendChild(s); });
+  return ocrLib;
+}
+const ORIGINS = ['Ethiopia','Kenya','Colombia','Brazil','Guatemala','Honduras','Costa Rica','Panama','Peru','Rwanda','Burundi','El Salvador','Nicaragua','Mexico','Bolivia','Ecuador','Yemen','Indonesia','Sumatra','Java','Papua New Guinea','India','China','Yunnan','Uganda','Tanzania','Congo','DRC','Vietnam','Thailand','Myanmar','Laos','Taiwan','Hawaii','Jamaica','Malawi','Zambia','Zimbabwe','Dominican Republic','Haiti','Venezuela','Timor','Philippines','Cameroon'];
+const REGIONS = ['Yirgacheffe','Sidamo','Sidama','Guji','Gedeb','Kochere','Limu','Jimma','Harrar','Nyeri','Kirinyaga','Embu','Huila','Nariño','Narino','Cauca','Tolima','Antioquia','Quindio','Santander','Minas Gerais','Cerrado','Mogiana','Antigua','Huehuetenango','Atitlan','Boquete','Volcan','Tarrazu','West Valley','Cajamarca','Cusco','Chiapas','Oaxaca','Veracruz','Aceh','Gayo','Kayanza','Ngozi','Nyamasheke','Rulindo','Kivu'];
+const PROCESSES = [['carbonic maceration','Carbonic maceration'],['anaerobic natural','Anaerobic natural'],['anaerobic washed','Anaerobic washed'],['anaerobic','Anaerobic'],['double fermentation','Double fermentation'],['thermal shock','Thermal shock'],['co-ferment','Co-fermented'],['coferment','Co-fermented'],['semi-washed','Semi-washed'],['semi washed','Semi-washed'],['wet hulled','Wet-hulled'],['wet-hulled','Wet-hulled'],['black honey','Black honey'],['red honey','Red honey'],['yellow honey','Yellow honey'],['white honey','White honey'],['honey','Honey'],['natural','Natural'],['washed','Washed'],['pulped natural','Pulped natural']];
+const VARIETALS = ['Gesha','Geisha','Bourbon','Pink Bourbon','Red Bourbon','Yellow Bourbon','Caturra','Catuai','Catuaí','Typica','SL28','SL34','SL-28','SL-34','Pacamara','Heirloom','74110','74112','74158','Castillo','Sidra','Wush Wush','Maragogype','Ruiru 11','Batian','Mundo Novo','Villa Sarchi','Laurina','Java','Landrace','Catimor','Parainema','Marsellesa'];
+const MONTHS = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,sept:9,oct:10,nov:11,dec:12,mrt:3,mei:5,okt:10};
+function findDate(t){
+  const today = new Date(), iso = (y,m,d) => { if(y < 100) y += 2000; const dt = new Date(Date.UTC(y, m-1, d)); if(isNaN(dt) || m < 1 || m > 12 || d < 1 || d > 31) return null; if(dt > today || today - dt > 400*864e5) return null; return dt.toISOString().slice(0,10); };
+  const near = /(roast(ed)?( on| date)?|geroosterd|brand(datum)?)[^0-9a-z]{0,6}/i;
+  const pats = [
+    [/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/g, m => iso(+m[1], +m[2], +m[3])],
+    [/(\d{1,2})[-./](\d{1,2})[-./](\d{2,4})/g, m => iso(+m[3], +m[2], +m[1])],
+    [/(\d{1,2})\s*([a-z]{3,5})\.?\s*(\d{2,4})/gi, m => MONTHS[m[2].toLowerCase()] ? iso(+m[3], MONTHS[m[2].toLowerCase()], +m[1]) : null]
+  ];
+  let best = null;
+  for(const [re, fn] of pats){ for(const m of t.matchAll(re)){ const v = fn(m); if(!v) continue; const pre = t.slice(Math.max(0, m.index - 24), m.index); if(near.test(pre)) return v; best = best || v; } }
+  return best || '';
+}
+function hasWord(t, w){ return new RegExp('(^|[^a-z])' + w.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-z]|$)', 'i').test(t); }
+function parseLabel(text, lines){
+  const t = ' ' + text.replace(/\s+/g, ' ') + ' ', low = t.toLowerCase();
+  const country = ORIGINS.find(o => hasWord(low, o)) || '', region = REGIONS.find(r => hasWord(low, r)) || '';
+  const proc = PROCESSES.find(([k]) => low.includes(k));
+  let vars = [...new Set(VARIETALS.filter(v => hasWord(low, v)).map(v => v.replace('Geisha','Gesha').replace('SL-','SL')))];
+  vars = vars.filter(v => !vars.some(o => o !== v && o.includes(v)));
+  let roastLevel = '';
+  if(/light roast|lichte branding|light/.test(low)) roastLevel = 'light';
+  if(/medium[- ]light/.test(low)) roastLevel = 'medium-light'; else if(/medium roast|medium/.test(low) && !roastLevel) roastLevel = 'medium';
+  if(/dark roast|donker/.test(low)) roastLevel = 'dark';
+  const alt = (t.match(/(\d{1,2}[.,]?\d{3}(?:\s*[-–]\s*\d{1,2}[.,]?\d{3})?)\s*(m\.?a\.?s\.?l|masl|meters|metres|m\b)/i) || [])[1] || '';
+  const nl = (text.match(/(tasting notes?|notes?|flavou?rs?|smaak|in the cup|we taste|taste)\s*[:\-–]?\s*([^\n]{4,80})/i) || [])[2] || '';
+  /* the biggest text on the bag is usually the coffee's name */
+  const skip = l => { const s = l.text.trim(); const sl = s.toLowerCase(); return s.length < 3 || /\d{2,}/.test(s) || PROCESSES.some(([k]) => sl === k) || /roast|coffee|koffie|net|weight|gram|\bg\b|filter|espresso|whole bean|bonen/i.test(sl) && s.split(' ').length < 3; };
+  const big = (lines || []).filter(l => l.text && l.confidence > 55 && !skip(l)).sort((a,b) => (b.bbox.y1 - b.bbox.y0) - (a.bbox.y1 - a.bbox.y0));
+  const clean = s => s.replace(/[^\p{L}\p{N}&' .,-]/gu, ' ').replace(/\s+/g, ' ').replace(/\s+,/g, ',').trim().replace(/[,.]$/, '');
+  let name = big[0] ? clean(big[0].text) : '';
+  if(name && name === name.toUpperCase()) name = name.toLowerCase().replace(/(^|\s)\p{L}/gu, c => c.toUpperCase());
+  const rb = (text.match(/roasted by\s+([^\n]{2,40})/i) || text.match(/([A-Z][\w&' ]{2,30}(coffee roasters|roasters|roastery|coffee co))/) || [])[1] || '';
+  return { name: name || region || country, roaster: clean(rb), origin: [region, country].filter(Boolean).join(', '), process: proc ? proc[1] : '', roastLevel,
+    roastDate: findDate(text), varietal: vars.join(', '), altitude: alt ? alt.replace(/\s/g, '') + ' m' : '', flavourNotes: clean(nl) };
+}
+function starterRecipe(bean, st){
+  if(!st) return null;
+  const g = grinderOf(st), z = gZone(g), dark = /dark/.test(bean.roastLevel || ''), light = /light/.test(bean.roastLevel || '');
+  let grind = z ? gStr(g, z.start + (dark ? (g.nudge || 1) : 0)) : '';
+  return { dose:15, water:250, grind, temp: dark ? 90 : light ? 95 : 93, bloomWater:45, bloomTime:45, targetTime:'3:00',
+    pours:'Bloom 45 g, then three even pours to 250 g.', why: `A starting point from your grinder’s V60 range${bean.roastLevel ? ' and the ' + bean.roastLevel + ' roast' : ''}. Log the cup and the tips take it from there.` };
+}
+async function ocrRead(job){
+  const box = $('#scan-box'), say = m => { if(box && scanJob === job) box.innerHTML = `<div class="grp tip"><span class="note"><span class="spin"></span>${m}</span></div>`; };
+  say('Loading the label reader…');
+  try {
+    const T = await loadOcr();
+    const src = drawTo(job.img, 2000);
+    const res = await T.recognize(src, 'eng', { logger: m => {
+      if(m.status === 'recognizing text') say(`Reading the label… ${Math.round((m.progress || 0) * 100)}%`);
+      else if(/load|initializ/.test(m.status || '')) say('Getting the label reader ready (first time only)…');
+    }});
+    if(!sheetOpen() || scanJob !== job) return;
+    const text = (res && res.data && res.data.text) || '';
+    if(text.replace(/\W/g, '').length < 6) return showScanBox('Couldn’t read text on that photo. Try again closer to the label, in good light, or fill it in by hand.', true);
+    const bean = parseLabel(text, res.data.lines);
+    const r = starterRecipe(bean, job.st);
+    openBeanForm({ ...bean, photo: job.thumb, recipes: r && job.st ? { [job.st.id]: { ...r, at: Date.now() } } : {}, fromScan:true });
+  } catch(e){
+    if(!sheetOpen() || scanJob !== job) return;
+    showScanBox((e && e.message) || 'The label reader stopped. Try again.', true);
+  }
 }
 
 /* ---------- setups ---------- */

@@ -89,6 +89,19 @@ with sync_playwright() as p:
     check('AI call inside tap', bool(calls) and calls[0]['active'] is True and calls[0]['images'] == 1, str(calls))
     check('scan fills bean form', pg2.evaluate("document.getElementById('b-name')?.value") == 'Kochere')
     check('no page errors (AI)', not errs2, '; '.join(errs2))
+    # 7. web version (no Claude): on-device label reader fills the form + starter recipe
+    MOCK_OCR = "window.Tesseract={recognize:(s,l,o)=>{o.logger({status:'recognizing text',progress:.5});return Promise.resolve({data:{text:%s,lines:%s}});}};" % (
+        json.dumps("FINCA EL PARAISO\nRoasted by Example Coffee Roasters\nColombia · Cauca\nProcess: Anaerobic washed\nVariety: Pink Bourbon, Caturra\nAltitude 1.850 masl\nTasting notes: strawberry, lychee, rose\nRoasted on 09/11/2026"),
+        json.dumps([{"text": "FINCA EL PARAISO", "confidence": 90, "bbox": {"x0": 0, "y0": 0, "x1": 800, "y1": 120}}]))
+    pg3, errs3 = page(MOCK_OCR)
+    pg3.goto(URL + '#beans'); pg3.wait_for_timeout(700)
+    pg3.set_input_files('#pick', img); pg3.wait_for_timeout(1000)
+    pg3.click('[data-act=readLabel]'); pg3.wait_for_timeout(900)
+    got = {k: pg3.evaluate(f"document.getElementById('{k}')?.value") for k in ['b-name', 'b-origin', 'b-process', 'b-date']}
+    check('web label reader', got == {'b-name': 'Finca El Paraiso', 'b-origin': 'Cauca, Colombia', 'b-process': 'Anaerobic washed', 'b-date': '2026-11-09'}, str(got))
+    pg3.click('#sheet-save'); pg3.wait_for_timeout(700)
+    check('web starter recipe', pg3.evaluate("Object.values(S.beans.find(b => b.name === 'Finca El Paraiso').recipes)[0]?.grind") == '4.1')
+    check('no page errors (web scan)', not errs3, '; '.join(errs3))
     b.close()
 httpd.shutdown()
 print('ALL PASS' if not fails else f'{len(fails)} FAILED: ' + ', '.join(fails))
