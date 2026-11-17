@@ -1,0 +1,53 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>drawdown</title>
+<style>
+  html, body { margin:0; height:100%; }
+  body { background:var(--ground); color:var(--text); overflow:hidden; }
+  .cover { position:relative; height:288px; overflow:hidden; }
+  .art { position:absolute; top:0; left:480px; width:480px; height:288px; overflow:hidden; }
+  .art svg { display:block; width:480px; height:288px; }
+  .sig { fill:var(--text); }
+  .wat { fill:var(--water); }
+  .inv { fill:var(--surface-3); }
+  .swt { fill:var(--taste-floral); }
+  .blk { rx:var(--radius-none); }
+  .ripple { fill:none; stroke:var(--ground); stroke-width:3px; }
+  .words { position:absolute; left:var(--space-6); bottom:var(--space-6); max-width:440px; }
+  .name { margin:0; font-family:var(--font-serif); font-style:italic; font-size:120px; line-height:.92; font-weight:400; letter-spacing:-.02em; color:var(--text); }
+  .tag { margin:var(--space-2) 0 0 3px; font-family:var(--font-sans); font-size:14px; line-height:20px; color:var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 288" width="480" height="288">
+<!--
+  blocks      text (milk) 176×264 slab bled off the top · water 128×144 (the pour) · surface-3 144×192 bleeding off the right · taste-floral 48×32 once — ≈40% of 960×288
+  arrangement one tall signal slab with satellites, bottoms on one line space-7 above the edge, space-4 gutters
+  pattern     literal motif, from the logo's spiral pour: four hairline ripples cut into the slab in ground, radii at space-6 steps, centred on the slab's bottom-right corner
+  scales      sides in space-4 multiples; gutters space-4; ripple pitch space-6 (32); corners radius-none, hairline ripples
+-->
+<defs><clipPath id="slab"><rect x="16" y="-24" width="176" height="264" rx="0"/></clipPath></defs>
+<rect class="sig blk" x="16" y="-24" width="176" height="264" rx="0"/>
+<g clip-path="url(#slab)">
+<circle class="ripple" cx="192" cy="240" r="40"/>
+<circle class="ripple" cx="192" cy="240" r="72"/>
+<circle class="ripple" cx="192" cy="240" r="104"/>
+<circle class="ripple" cx="192" cy="240" r="136"/>
+</g>
+<rect class="swt" x="208" y="48" width="48" height="32" rx="0"/>
+<rect class="wat blk" x="208" y="96" width="128" height="144" rx="0"/>
+<rect class="inv blk" x="352" y="48" width="144" height="192" rx="0"/>
+</svg>
+</div>
+<div class="words">
+<h1 class="name">drawdown</h1>
+<p class="tag">A brew log for people who dial in.</p>
+</div>
+</div>
+</body>
+</html>

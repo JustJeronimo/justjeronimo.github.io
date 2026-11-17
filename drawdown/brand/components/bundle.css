@@ -1,0 +1,113 @@
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&family=Geist+Mono:wght@400&family=Instrument+Serif:ital@0;1&display=swap");
+/* drawdown components: plain classes, prefix dd-. Tokens come from tokens.css (var(--signal) etc). */
+body{margin:0;background:var(--ground);color:var(--text);font-family:var(--font-sans);font-size:17px;line-height:1.3;-webkit-font-smoothing:antialiased}
+.dd-stage{padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);max-width:420px}
+.dd-row{display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap}
+.dd-num{font-variant-numeric:tabular-nums}
+
+/* Section header + footnote */
+.dd-sec{font-size:13px;line-height:18px;text-transform:uppercase;letter-spacing:.02em;color:var(--text-muted);padding:var(--space-5) var(--space-4) 6px}
+.dd-foot{font-size:13px;line-height:18px;color:var(--text-muted);padding:6px var(--space-4) 0;margin:0}
+
+/* Buttons */
+.dd-pill{appearance:none;border:0;border-radius:var(--radius-pill);min-height:56px;padding:0 22px;font:600 19px var(--font-sans);display:inline-flex;align-items:center;justify-content:center;gap:10px;background:var(--signal);color:var(--on-signal);cursor:pointer}
+.dd-pill svg{width:20px;height:20px}
+.dd-pill-ghost{background:var(--surface-2);color:var(--text);min-width:56px;padding:0 18px}
+.dd-btn{appearance:none;border:0;border-radius:var(--radius-md);min-height:50px;padding:0 var(--space-4);font:600 17px var(--font-sans);background:var(--surface-2);color:var(--text);cursor:pointer}
+.dd-btn-go{background:var(--signal);color:var(--on-signal)}
+.dd-btn-red{color:var(--alert)}
+.dd-link{appearance:none;background:none;border:0;padding:4px 0;font:inherit;color:var(--signal-text);cursor:pointer}
+.dd-again{appearance:none;border:0;background:var(--signal-soft);color:var(--signal-text);font:600 14px var(--font-sans);border-radius:var(--radius-pill);padding:6px 12px;cursor:pointer}
+.dd-pill:focus-visible,.dd-btn:focus-visible,.dd-link:focus-visible,.dd-again:focus-visible{outline:2px solid var(--signal);outline-offset:3px}
+
+/* Grouped list */
+.dd-group{background:var(--surface-1);border-radius:var(--radius-md);overflow:hidden}
+.dd-cell{display:flex;align-items:center;gap:var(--space-3);min-height:44px;padding:10px var(--space-4);position:relative}
+.dd-cell + .dd-cell::before{content:"";position:absolute;top:0;left:var(--space-4);right:0;height:.5px;background:var(--line)}
+.dd-cell-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.dd-cell-title{font-size:17px}
+.dd-cell-sub{font-size:14px;color:var(--text-muted)}
+.dd-cell-val{color:var(--text-muted)}
+.dd-chev{width:8px;height:13px;color:var(--text-faint);flex:none}
+.dd-thumb{width:44px;height:44px;border-radius:var(--radius-sm);flex:none;background:var(--surface-2)}
+
+/* Recipe grid */
+.dd-rgrid{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface-1);border-radius:var(--radius-md);overflow:hidden}
+.dd-rgrid > div{padding:11px 14px;border-right:.5px solid var(--line);border-bottom:.5px solid var(--line)}
+.dd-rgrid > div:nth-child(3n){border-right:0}
+.dd-rgrid > div:nth-last-child(-n+3){border-bottom:0}
+.dd-rgrid small{display:block;font-size:12px;line-height:16px;color:var(--text-muted)}
+.dd-rgrid b{font:500 21px/1.3 var(--font-sans);font-variant-numeric:tabular-nums}
+.dd-rgrid i{font-style:normal;font-size:14px;color:var(--text-muted);margin-left:2px}
+
+/* Brew code */
+.dd-code{font:500 18px/24px var(--font-mono);font-variant-numeric:tabular-nums;color:var(--text);letter-spacing:0}
+.dd-code-s{font:500 12px/16px var(--font-mono);letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted)}
+.dd-code .sep{color:var(--text-muted)}
+
+/* Timer */
+.dd-ring{position:relative;width:240px;aspect-ratio:1}
+.dd-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.dd-ring .track{stroke:var(--surface-2)}
+.dd-ring .fg{stroke:var(--signal)}
+.dd-ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.dd-clock{font:200 54px/1 var(--font-sans);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.dd-clock small{font-size:27px;color:var(--text-muted)}
+.dd-ring-sub{font-size:14px;color:var(--text-muted)}
+
+/* Pours */
+.dd-pours{background:var(--surface-1);border-radius:var(--radius-md);padding:6px var(--space-4) 12px;display:flex;flex-direction:column;gap:10px}
+.dd-pour-top{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:4px}
+.dd-pour-top b{font-weight:500;color:var(--text)}
+.dd-bar{height:22px;border-radius:var(--radius-xs);background:var(--water-deep);position:relative;overflow:hidden;transform-origin:left center}
+.dd-bar > span{position:absolute;inset:0 auto 0 0;background:var(--water);border-radius:inherit}
+.dd-pour.is-now .dd-bar{transform:scaleY(1.14)}
+.dd-pour.is-now .dd-pour-top b{color:var(--water)}
+.dd-pour.is-done .dd-bar{opacity:.42}
+.dd-pour.is-done .dd-pour-top b{color:var(--text-muted)}
+
+/* Segmented */
+.dd-seg{position:relative;display:grid;grid-template-columns:1fr 1fr;background:var(--surface-2);border-radius:var(--radius-sm);padding:2px;max-width:360px}
+.dd-seg-thumb{position:absolute;top:2px;bottom:2px;left:2px;width:calc(50% - 2px);border-radius:7px;background:var(--surface-3);box-shadow:var(--shadow-lift)}
+.dd-seg[data-on="2"] .dd-seg-thumb{transform:translateX(100%)}
+.dd-seg button{position:relative;appearance:none;border:0;background:none;padding:6px;font:500 14px var(--font-sans);color:var(--text-muted);cursor:pointer}
+.dd-seg button[aria-selected="true"]{color:var(--text);font-weight:600}
+
+/* Taste chips */
+.dd-taste{display:inline-flex;align-items:center;border-radius:var(--radius-pill);padding:6px 13px;font:600 15px var(--font-sans);color:var(--on-signal);background:var(--taste-off)}
+.dd-taste[data-taste="acid"]{background:var(--taste-acid)}
+.dd-taste[data-taste="fruit"]{background:var(--taste-fruit)}
+.dd-taste[data-taste="floral"]{background:var(--taste-floral)}
+.dd-taste[data-taste="sweet"]{background:var(--taste-sweet)}
+.dd-taste[data-taste="body"]{background:var(--taste-body)}
+.dd-taste-idle{background:var(--surface-2);color:var(--text);font-weight:400}
+
+/* Cup label: the signature card */
+.dd-label{width:300px;background:#0b0b0c;color:#ffffff;border-radius:var(--radius-lg);overflow:hidden;display:flex;flex-direction:column}
+.dd-label-blocks{display:flex;height:150px}
+.dd-label-blocks > span{display:block}
+.dd-label-body{padding:var(--space-4) var(--space-4) 18px;display:flex;flex-direction:column;gap:6px}
+.dd-label-no{font:500 12px/16px var(--font-mono);letter-spacing:.04em;text-transform:uppercase;color:#9a9aa1;display:flex;justify-content:space-between}
+.dd-label-name{font:800 44px/.9 var(--font-serif);text-transform:uppercase;letter-spacing:-.005em;margin:2px 0 4px}
+.dd-label-code{font:500 15px/20px var(--font-mono);font-variant-numeric:tabular-nums}
+.dd-label-stars{color:#ff6b1a;font-size:14px;letter-spacing:1px}
+
+/* v2 · mono: square, outlined, serif italic titles */
+.dd-pill,.dd-btn,.dd-again,.dd-group,.dd-rgrid,.dd-pours,.dd-seg,.dd-seg-thumb,.dd-bar,.dd-taste,.dd-label,.dd-thumb{border-radius:0}
+.dd-pill{background:var(--text);color:var(--ground);font-weight:400;justify-content:flex-start;padding:0 22px}
+.dd-pill-ghost{background:transparent;color:var(--text);box-shadow:var(--outline);justify-content:center;padding:0;width:60px}
+.dd-btn{background:transparent;color:var(--text);box-shadow:var(--outline);font-weight:400}
+.dd-btn-go{background:var(--text);color:var(--ground);box-shadow:none}
+.dd-again{background:transparent;color:var(--text);box-shadow:var(--outline);font-weight:400}
+.dd-link{color:var(--text);text-decoration:underline;text-underline-offset:4px}
+.dd-cell + .dd-cell::before{left:0}
+.dd-ring .track{stroke:var(--surface-3);stroke-width:3px}
+.dd-ring .fg{stroke:var(--text);stroke-width:3px;stroke-linecap:butt}
+.dd-clock{font-weight:300}
+.dd-bar{height:14px}
+.dd-seg{background:var(--surface-1);padding:3px}
+.dd-seg-thumb{top:3px;bottom:3px;left:3px;width:calc(50% - 3px);background:var(--ground);box-shadow:none}
+.dd-label{background:#121212}
+.dd-label-name{font:italic 400 48px/.95 var(--font-serif);text-transform:none}
+.dd-label-stars{color:#f4f2ec}
+.dd-taste{color:#000;font-weight:400}

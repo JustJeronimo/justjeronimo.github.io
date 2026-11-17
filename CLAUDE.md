@@ -57,6 +57,14 @@ Inspired by the *feel* of the beean app (black, italic serif titles, square, out
 - **Cup label:** per brew; taste-colour blocks on top, serif italic bean name, brew code, stars.
 - **Voice:** short, specific, a bit cheeky, never snobby. Units always. Verb-first buttons. No exclamation marks, no emoji.
 
+## Skills and files in this repo
+
+- `.claude/skills/drawdown/` — our skill: brand rules, code map, ship routine. Use it for any app change.
+- `.claude/skills/*` (others) — Emil Kowalski's design-engineering skills, vendored from github.com/emilkowalski/skills @ 64eb3de (MIT, see `LICENSE-emilkowalski`). Most used here: `apple-design`, `mobile-native`, `gestures`, `review-animations`, `break-ui`. Update with `npx skills@latest add emilkowalski/skills`.
+- `drawdown/brand/` — brand book (`README.md`), `tokens.json`, `motion.md`, component previews, `logos/` (SVG/PNG, v1 orange + v2 mono, plus the Python that draws the mark).
+- `drawdown/tests/test_app.py` — end-to-end checks (Playwright). Must print `ALL PASS` before shipping.
+- Data sources: grinder ranges from honestcoffeeguide.com/pour-over-grind-size; motion/mobile rules from the skills above.
+
 ## Open items
 
 - AI photo reading + sync on GitHub Pages would need a small backend (Claude API key + database).
