@@ -56,6 +56,31 @@ with sync_playwright() as p:
     check('grinder table parses', not bad, ','.join(bad))
     check('name matching', pg.evaluate("matchGrinder('Fellow Ode Brew Grinder Gen 2')?.id === 'fellow-ode-2' && matchGrinder('Baratza Encore ESP')?.id === 'baratza-encore-esp' && !matchGrinder('my weird grinder')"))
 
+    # 1b. dial-in engine scenarios (Fellow Ode Gen 2 setup)
+    D = pg.evaluate('''() => {
+      const st = setupById('setup_a'), base = {id:'x', date:'2026-11-17T08:00:00Z', dose:15, water:250, grind:'4.1', temp:94, bloomWater:45, bloomTime:45, time:180};
+      const adv = (b, hist=[]) => ruleAdvice({...base, ...b}, st, hist);
+      return {
+        sourFast: adv({tags:['sour','thin'], time:140}).next.grind,
+        bitter: adv({tags:['bitter','astringent']}).next.grind,
+        both: adv({tags:['sour','bitter']}),
+        bracket: adv({grind:'5', tags:['sour']}, [{id:'p', date:'2026-11-16T08:00:00Z', grind:'3', tags:['bitter'], time:180}]).next.grind,
+        good: adv({tags:['sweet','balanced'], rating:4}),
+        tempLever: adv({grind:'3.1', tags:['sour']}, [{id:'p1', date:'2026-11-16T08:00:00Z', grind:'3.2', tags:['sour'], time:180},{id:'p2', date:'2026-11-15T08:00:00Z', grind:'4', tags:['sour'], time:180}]).next,
+        lightEth: starterRecipe({roastLevel:'light', process:'Washed', origin:'Guji, Ethiopia', altitude:'2.100 m'}, st),
+        darkNat: starterRecipe({roastLevel:'dark', process:'Natural', origin:'Brazil'}, st)
+      };
+    }''')
+    check('dial-in: sour + fast → two steps finer', D['sourFast'] == '3.2', D['sourFast'])
+    check('dial-in: bitter → coarser', D['bitter'] == '5', D['bitter'])
+    check('dial-in: sour + bitter → coarser, uneven', D['both']['next']['grind'] == '4.2' and 'uneven' in D['both']['summary'], D['both']['summary'])
+    check('dial-in: brackets between cups', D['bracket'] == '4', D['bracket'])
+    check('dial-in: good cup is kept', D['good']['next']['grind'] == '4.1' and 'Lock it in' in D['good']['summary'])
+    check('dial-in: temperature after two grind moves', D['tempLever']['grind'] == '3.1' and D['tempLever']['temp'] == 96, str(D['tempLever']))
+    check('starter: light washed Ethiopian, high grown', D['lightEth']['temp'] == 97 and D['lightEth']['grind'] == '3.2' and D['lightEth']['water'] == 240, str(D['lightEth']))
+    check('starter: dark natural', D['darkNat']['temp'] == 89 and D['darkNat']['grind'] == '5.1', str(D['darkNat']))
+    check('grinder images exist', all(os.path.exists(os.path.join(ROOT, 'coffee', 'assets', 'grinders', i + '.png')) for i in pg.evaluate('GRINDERS.map(g => g.id)')))
+
     # 2. timer + log brew
     pg.click('[data-act=timerToggle]'); pg.evaluate('T.start = Date.now() - 62000'); pg.wait_for_timeout(500)
     check('timer shows pour 1', 'Pour 1' in pg.inner_text('#step-main'))
@@ -65,7 +90,7 @@ with sync_playwright() as p:
     check('brew logged', pg.evaluate('S.brews.length') == 2)
 
     # 3. quick tip without AI moves the Ode one click finer
-    check('rule tip', pg.evaluate("ruleAdvice(brewById('brew_a'), setupById('setup_a')).next.grind") == '4')
+    check('rule tip', pg.evaluate("ruleAdvice(brewById('brew_a'), setupById('setup_a')).next.grind") == '3.2')
 
     # 4. sheet closes on drag
     pg.evaluate("openBrewDetail('brew_a')"); pg.wait_for_timeout(700)
@@ -100,7 +125,7 @@ with sync_playwright() as p:
     got = {k: pg3.evaluate(f"document.getElementById('{k}')?.value") for k in ['b-name', 'b-origin', 'b-process', 'b-date']}
     check('web label reader', got == {'b-name': 'Finca El Paraiso', 'b-origin': 'Cauca, Colombia', 'b-process': 'Anaerobic washed', 'b-date': '2026-11-09'}, str(got))
     pg3.click('#sheet-save'); pg3.wait_for_timeout(700)
-    check('web starter recipe', pg3.evaluate("Object.values(S.beans.find(b => b.name === 'Finca El Paraiso').recipes)[0]?.grind") == '4.1')
+    check('web starter recipe', pg3.evaluate("Object.values(S.beans.find(b => b.name === 'Finca El Paraiso').recipes)[0]?.grind") == '4.2')
     check('no page errors (web scan)', not errs3, '; '.join(errs3))
     b.close()
 httpd.shutdown()

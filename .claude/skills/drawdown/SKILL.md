@@ -15,7 +15,7 @@ Read `CLAUDE.md` at the repo root first; it has the full context. This skill is 
 ## Brand rules (v2 mono)
 
 - Black ground, milk `#f4f2ec` text, greys for structure. No accent colour. Water blue `#9db8dc` only for water.
-- Instrument Serif italic titles · Geist UI (regular/light, uppercase labels) · Geist Mono brew codes.
+- Instrument Serif italic titles · Allo UI (regular/light, uppercase labels) · Geist Mono brew codes.
 - Square corners. One solid milk button per screen; everything else outlined (1.5px) or text. Full-width hairlines. Tab bar = four uppercase words.
 - Brew code `15/250 · G4.1 · 94° · 3:00 · ★4`. Name always lowercase: drawdown.
 - Voice: short, specific, units always, no exclamation marks, no emoji.
@@ -27,6 +27,8 @@ Read `CLAUDE.md` at the repo root first; it has the full context. This skill is 
 - Plan & timer: `curPlan`, `setPlan`, `pourPlan`, `paintTimer` (rAF loop), `paintDock`.
 - Grinders: `GRINDERS` + `gIdx/gStr/gZone/matchGrinder/shiftGrind/grindRow`. New grinder → add a row with the Honest Coffee Guide pour-over range; use `kind:'text'` unless the dial notation is certain.
 - AI (Claude artifact only): `AI`, `askJSON`, prompts `scanPrompt/recipePrompt/advicePrompt` (always include `grindNote`). Any first AI call must start synchronously inside a tap.
+- Dial-in: `extraction`, `ruleAdvice`, `starterRecipe`. Grinder images: `gImg`, files from `drawdown/render/grinders3d.py`.
+- Bump `APP_VERSION` on every ship.
 - v2 look lives in the `/* drawdown v2 · mono */` CSS block; motion in `/* motion */`.
 
 ## Ship routine

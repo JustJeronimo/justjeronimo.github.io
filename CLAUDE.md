@@ -31,6 +31,9 @@ Features: setups (brewer, hand or electric grinder, kettle, filter); beans (scan
 - `pourPlan()`: bloom + 3–4 pours, 30 s apart after bloom.
 - **Grinders:** `GRINDERS` table, 56 models. `kind`: `steps` (numbers/clicks), `ode` (Fellow 1–11 with .1/.2), `rot` (1Zpresso rotation.number.tick), `text` (typed; notation we don't model). `po` = pour-over range from the Honest Coffee Guide chart; V60 zone = finer 57% of it (400–700 of 400–930 µm); start = middle of the V60 zone; `nudge` = clicks for a noticeable change. Functions: `gIdx`, `gStr`, `gZone`, `matchGrinder` (name → model, longest alias wins), `shiftGrind`.
 - **AI** (only inside Claude): `sample` capability, resolved once at boot into `AI`. The first AI call shows Claude's consent prompt and **must run synchronously inside a tap** — that's why scanning is photo → preview → "Read label" button. Prompts always include the grinder's notation (`grindNote`).
+- **Dial-in engine (no AI):** `extraction()` scores a cup from taste tags, notes words and time vs target; `ruleAdvice(brew, setup, history, bean)` changes one thing: grind ±1–2 nudges, splits the difference when an under- and over-extracted cup of the same beans exist, switches to temperature (±2°) after two grind moves the same way, flags sour+bitter as uneven extraction, keeps good cups (4★+). `starterRecipe(bean, setup)` uses roast level, process, origin, altitude and days off roast on top of the grinder's V60 start. Scenarios are locked in `drawdown/tests/test_app.py`.
+- **Grinder renders:** `coffee/assets/grinders/<id>.png` (192 px, transparent), made by `drawdown/render/grinders3d.py` — a numpy SDF raymarcher with five archetypes (hand, box, cone hopper, single-dose, café) and per-model colours/proportions in `LOOK`. Stylised, not product photos. New grinder → add a `LOOK` entry and re-run. Shown via `gImg()` in the setup picker, Gear rows and the Brew screen.
+- `APP_VERSION` shows in Gear; bump it on every ship so people can tell if their phone has the new version (GitHub Pages caches ~10 min; home-screen apps longer).
 - Motion: CSS springs as `linear()` curves (`--spring-soft/bounce/snappy`). Press feedback 97 % / 100 ms ease-out on pointer-down; no bounce on taps; sheets drag-to-dismiss with velocity hand-off and 0.55 rubber band; reduced motion = 200 ms cross-fades.
 - Mobile rules applied (Emil Kowalski's `mobile-native` / `apple-design` skills): `viewport-fit=cover`, `interactive-widget=resizes-content`, `touch-action: manipulation`, no text selection on controls, `overscroll-behavior`, safe-area padding, 16 px+ inputs, never disable zoom.
 
@@ -51,7 +54,7 @@ Inspired by the *feel* of the beean app (black, italic serif titles, square, out
 - **Name:** drawdown, always lowercase.
 - **Mark:** a lowercase d drawn as one pour — kettle stream falls and spirals into the bed. Milk on black, black on milk. Lockup = mark + "drawdown" in Instrument Serif italic. App icon: milk mark on black (`coffee/assets/`).
 - **Colour:** black `#000000` ground · `#121212` panels · `#1c1c1c` inside sheets · `#2a2a2a` tracks · `#3a3a3a` hairlines · `#8c8c8c` secondary · `#5e5e5e` inactive · milk `#f4f2ec` text. **No accent.** Only hue: water `#9db8dc` (deep `#2e3a4a`), only for water. Muted taste tones only on cup labels.
-- **Type:** Instrument Serif italic for titles (sentence case) · Geist for UI (regular/light, never bold; uppercase labels +0.04em) · Geist Mono for brew codes.
+- **Type:** Instrument Serif italic for titles (sentence case) · **Allo** for UI (Josh Puckett, OFL, variable 100–900, loaded from jsDelivr `allo-font@1.0.1`; regular/light, never bold; uppercase labels +0.04em) · Geist Mono for brew codes.
 - **Shapes:** square everything (0 radius except the app icon). Primary = one solid milk block per screen; secondary = 1.5 px milk outline; icon buttons = outlined squares; rows with full-width hairlines, light-weight values, underlined "Change" links; tab bar = four uppercase words, no icons.
 - **Brew code:** `15/250 · G4.1 · 94° · 3:00 · ★4` (dose/water · G + grinder notation · °C · time). Brew numbers `BREW 0042`.
 - **Cup label:** per brew; taste-colour blocks on top, serif italic bean name, brew code, stars.
@@ -62,6 +65,8 @@ Inspired by the *feel* of the beean app (black, italic serif titles, square, out
 - `.claude/skills/drawdown/` — our skill: brand rules, code map, ship routine. Use it for any app change.
 - `.claude/skills/*` (others) — Emil Kowalski's design-engineering skills, vendored from github.com/emilkowalski/skills @ 64eb3de (MIT, see `LICENSE-emilkowalski`). Most used here: `apple-design`, `mobile-native`, `gestures`, `review-animations`, `break-ui`. Update with `npx skills@latest add emilkowalski/skills`.
 - `drawdown/brand/` — brand book (`README.md`), `tokens.json`, `motion.md`, component previews, `logos/` (SVG/PNG, v1 orange + v2 mono, plus the Python that draws the mark).
+- `.claude/skills/prototype/` — Emil's prototyping skill (build several variants before settling); Jeroen uses it often.
+- `drawdown/render/` — grinder 3D renderer.
 - `drawdown/tests/test_app.py` — end-to-end checks (Playwright). Must print `ALL PASS` before shipping.
 - Data sources: grinder ranges from honestcoffeeguide.com/pour-over-grind-size; motion/mobile rules from the skills above.
 

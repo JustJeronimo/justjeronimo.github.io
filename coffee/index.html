@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="color-scheme" content="dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="drawdown">
@@ -187,7 +187,7 @@ input[type=range]::-moz-range-thumb{width:28px;height:28px;border:0;border-radiu
 #sheet .seg{background:var(--grp2)}
 #sheet .seg-thumb{background:#5A5A5E}
 .gwrap::before,.gwrap + .srow::before,.gwrap + .frow::before{content:"";position:absolute;top:0;left:16px;right:0;height:.5px;background:var(--sep)}
-.gwrap.swapin{animation:fadein .4s var(--spring-soft)}
+.gwrap.swapin,.swapin{animation:fadein .4s var(--spring-soft)}
 .zone{position:relative;height:4px;margin:8px 14px 0;border-radius:2px;background:rgba(91,143,224,.12)}
 .zone span{position:absolute;top:0;bottom:0;border-radius:2px;background:var(--water);opacity:.75}
 .ghint{font-size:12px;color:var(--sec);margin-top:6px}
@@ -208,6 +208,15 @@ input[type=range]::-moz-range-thumb{width:28px;height:28px;border:0;border-radiu
 .spin{display:inline-block;width:15px;height:15px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:6px}
 @keyframes sp{to{transform:rotate(360deg)}}
 
+/* Allo by Josh Puckett (SIL Open Font License), variable 100–900, via the allo-font npm package */
+@font-face{font-family:Allo;src:url("https://cdn.jsdelivr.net/npm/allo-font@1.0.1/fonts/webfonts/AlloVariable.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+.gimg{display:block;object-fit:contain;flex:none}
+.gprev{display:flex;justify-content:center;padding:6px 0 0;min-height:0}
+.gprev .gimg{width:132px;height:132px}
+.brew-head{position:relative;padding-right:64px}
+.brew-gimg{position:absolute;right:-8px;top:4px;width:72px;height:72px}
+.thumb-g{width:48px;height:48px;background:#121212}
+#sheet .thumb-g{background:#1c1c1c}
 /* ---------- drawdown v2 · mono (brand guide v2) ----------
    black ground, milk text, square corners, outlined secondary buttons, hairlines,
    italic serif titles, Geist for the interface, water blue as the only colour */
@@ -216,8 +225,8 @@ input[type=range]::-moz-range-thumb{width:28px;height:28px;border:0;border-radiu
   --label:#f4f2ec; --sec:#8c8c8c; --ter:#5e5e5e;
   --accent:#f4f2ec; --accent-dim:rgba(244,242,236,.1);
   --water:#9db8dc; --water-deep:#2e3a4a; --water-done:rgba(157,184,220,.35);
-  --font:Geist, -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
-  --display:Geist, -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
+  --font:Allo, -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
+  --display:Allo, -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
   --serif:"Instrument Serif", Georgia, "Times New Roman", serif;
   --mono:"Geist Mono", ui-monospace, Menlo, monospace;
 }
@@ -534,6 +543,9 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
+const APP_VERSION = '1.4 · 17 Nov 2026';
+/* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
+function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
   const n = ' ' + norm(name) + ' '; if(n.trim() === '') return null;
   let best = null, bl = 0;
@@ -656,16 +668,59 @@ Brews: ${JSON.stringify(history.map(brewForAI))}
 Return only JSON, no prose:
 {"summary":"one sentence on what the latest cup tells you","next":{"dose":15,"water":250,"grind":"4","temp":94,"bloomWater":45,"bloomTime":45,"targetTime":"3:00"},"changes":["short change 1","short change 2"],"why":"two sentences max"}`;
 }
-function ruleAdvice(brew, setup){
-  const t = brew.tags || [], time = brew.time || 0;
-  const under = t.some(x => ['sour','thin'].includes(x)) || (time && time < 150);
-  const over = t.some(x => ['bitter','astringent','muddy','heavy'].includes(x)) || time > 260;
-  const next = { dose:brew.dose, water:brew.water, grind:brew.grind, temp:brew.temp, bloomWater:brew.bloomWater, bloomTime:brew.bloomTime, targetTime:'3:00' };
-  const changes = [];
-  if(under && !over){ next.grind = shiftGrind(brew.grind, -1, setup); changes.push(`Grind one step finer (${brew.grind || '?'} → ${next.grind || 'finer'})`); if(brew.temp && brew.temp < 96){ next.temp = brew.temp + 1; changes.push(`Water 1° hotter (${next.temp}°C)`); } }
-  else if(over && !under){ next.grind = shiftGrind(brew.grind, 1, setup); changes.push(`Grind one step coarser (${brew.grind || '?'} → ${next.grind || 'coarser'})`); if(brew.temp && brew.temp > 88){ next.temp = brew.temp - 1; changes.push(`Water 1° cooler (${next.temp}°C)`); } }
-  else changes.push('Keep these settings and brew it again to confirm');
-  return { summary: under ? 'This cup reads under-extracted.' : over ? 'This cup reads over-extracted.' : 'No clear extraction problem in your notes.', next, changes, why:'Sour or thin cups usually need more extraction; bitter or drying cups need less. This is a quick rule, because AI tips aren’t available in this view.', rule:true };
+/* ---------- dial-in engine (no AI needed) ----------
+   Reads taste tags, brew time vs target, rating and earlier cups of the same beans.
+   Changes one main thing at a time; brackets between an under- and an over-extracted cup. */
+const UNDER = ['sour','thin','juicy-sharp'], OVER = ['bitter','astringent','muddy','heavy'], GOOD = ['sweet','balanced','juicy','fruity','floral','chocolatey'];
+function extraction(b){
+  const t = b.tags || [], note = (b.notes || '').toLowerCase(), target = parseTime(b.targetTime) || 180, time = b.time || 0;
+  let s = 0;
+  s += t.filter(x => UNDER.includes(x)).length * 1.2 + (/\b(sour|sharp|thin|watery|weak|salty|grassy)\b/.test(note) ? 1 : 0);
+  s -= t.filter(x => OVER.includes(x)).length * 1.2 + (/\b(bitter|dry|drying|harsh|astringent|burnt|ashy|hollow)\b/.test(note) ? 1 : 0);
+  if(time && time < target - 25) s += .8; if(time && time > target + 30) s -= .8;
+  const sweet = t.some(x => GOOD.includes(x));
+  const both = t.some(x => UNDER.includes(x)) && t.some(x => OVER.includes(x));
+  return { s, both, sweet, time, target, rating: b.rating || 0 };
+}
+function ruleAdvice(brew, setup, history = [], bean = null){
+  const g = grinderOf(setup), e = extraction(brew), next = { dose:brew.dose, water:brew.water, grind:brew.grind, temp:brew.temp, bloomWater:brew.bloomWater, bloomTime:brew.bloomTime, targetTime: brew.targetTime || '3:00' };
+  const changes = []; let summary, why;
+  const prev = history.filter(x => x.id !== brew.id).sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  const gi = v => g && g.kind !== 'text' ? gIdx(g, v) : null;
+  const opp = prev.find(x => { const pe = extraction(x); return (e.s > 0.5 && pe.s < -0.5) || (e.s < -0.5 && pe.s > 0.5); });
+  const sameDir = prev.slice(0, 2).filter(x => Math.sign(extraction(x).s) === Math.sign(e.s) && Math.abs(extraction(x).s) > .5 && x.grind !== brew.grind).length;
+  const temp = v => Math.max(85, Math.min(100, v));
+  if(e.both){
+    summary = 'Sour and bitter in one cup usually means uneven extraction, not the wrong grind.';
+    next.grind = shiftGrind(brew.grind, 1, setup);
+    changes.push(`Grind one step coarser (${brew.grind || '?'} → ${next.grind || 'coarser'}) so water flows evenly`, 'Swirl after the bloom and pour gently in the centre');
+    why = 'Some grounds got too much water and some too little. A touch coarser and a calmer pour evens it out.';
+  } else if(Math.abs(e.s) <= .5){
+    if(e.rating >= 4){ summary = 'That’s a good cup. Lock it in.'; changes.push('Brew it exactly the same again to confirm'); why = 'When a cup tastes right, repeat it before changing anything.'; }
+    else if(e.rating && e.rating <= 2 && !e.sweet){ summary = 'Nothing tastes clearly off, but it’s flat. Push extraction a little.'; next.temp = temp((brew.temp || 93) + 2); changes.push(`Water 2° hotter (${next.temp}°C)`); why = 'A flat, muted cup often opens up with hotter water before you touch the grind.'; }
+    else { summary = 'No clear extraction problem in your notes.'; changes.push('Keep these settings; add taste tags next time so I can steer'); why = 'Sour or thin means grind finer; bitter or drying means grind coarser.'; }
+  } else {
+    const under = e.s > 0, dir = under ? -1 : 1, word = under ? 'finer' : 'coarser';
+    summary = under ? 'This cup reads under-extracted: it needs more from the coffee.' : 'This cup reads over-extracted: it took too much from the coffee.';
+    const a = gi(brew.grind), bIdx = opp ? gi(opp.grind) : null;
+    if(a != null && bIdx != null && Math.abs(a - bIdx) >= 2){
+      next.grind = gStr(g, Math.round((a + bIdx) / 2));
+      changes.push(`Grind halfway between this cup and your ${under ? 'over' : 'under'}-extracted one (${brew.grind} → ${next.grind})`);
+      why = 'You’ve been on both sides of it. The sweet spot is in between.';
+    } else if(sameDir >= 2 && brew.temp && ((under && brew.temp < 97) || (!under && brew.temp > 88))){
+      next.temp = temp(brew.temp + (under ? 2 : -2));
+      changes.push(`Keep the grind; water 2° ${under ? 'hotter' : 'cooler'} (${next.temp}°C)`);
+      why = `You’ve already gone ${word} twice. Temperature is the next lever.`;
+    } else {
+      const steps = Math.abs(e.s) >= 2.2 ? 2 : 1;
+      next.grind = shiftGrind(brew.grind, dir * steps, setup);
+      changes.push(`Grind ${steps === 2 ? 'two steps' : 'one step'} ${word} (${brew.grind || '?'} → ${next.grind || word})`);
+      if(e.time && under && e.time < e.target - 25) changes.push(`Aim for about ${fmtTime(e.target)}; this one ran fast (${fmtTime(e.time)})`);
+      if(e.time && !under && e.time > e.target + 30) changes.push(`Aim for about ${fmtTime(e.target)}; this one ran slow (${fmtTime(e.time)})`);
+      why = under ? 'Sour, thin or fast cups need more extraction: finer grind first, temperature second.' : 'Bitter, drying or slow cups need less extraction: coarser grind first, temperature second.';
+    }
+  }
+  return { summary, next, changes, why, rule:true };
 }
 
 /* ---------- images ---------- */
@@ -859,6 +914,7 @@ function viewBrew(){
   const setupOpts = S.setups.map(s => `<option value="${s.id}" ${st?.id === s.id ? 'selected' : ''}>${esc(setupLabel(s))}</option>`).join('');
   return `${bootNote ? `<div class="err">${esc(bootNote)}</div>` : ''}
   <div class="brew-head">
+    ${gImg(grinderOf(st), 'gimg brew-gimg')}
     <div class="eyebrow">${T.run ? 'Now brewing' : 'Up next'}</div>
     <label class="picker big"><span>${esc(beanLabel(bean))}</span>${I.down}<select id="plan-bean" aria-label="Beans">${beanOpts}</select></label>
     ${S.setups.length ? `<label class="picker small">for&nbsp;<b>${esc(setupLabel(st))}</b>${I.down}<select id="plan-setup" aria-label="Setup">${setupOpts}</select></label>` : ''}
@@ -925,12 +981,13 @@ function viewGear(){
   return `<h1 class="lt">Gear</h1>
   ${S.setups.length ? '' : noSetupBlock()}
   ${S.setups.length ? `<div class="sec-h"><span>Setups</span></div><div class="grp">${S.setups.map(s => `<div class="cellw"><button class="cell" data-act="useSetup" data-id="${s.id}" aria-pressed="${cur?.id === s.id}">
-      <span class="c-main"><span class="c-title">${esc(setupLabel(s))}</span><span class="c-sub">${esc(setupGear(s))}</span></span>
+      ${gImg(grinderOf(s), 'gimg thumb-g')}<span class="c-main"><span class="c-title">${esc(setupLabel(s))}</span><span class="c-sub">${esc(setupGear(s))}</span></span>
       ${cur?.id === s.id ? I.check : ''}</button><button class="link" style="padding:0 16px 0 4px" data-act="editSetup" data-id="${s.id}">Edit</button></div>`).join('')}
     <button class="cell" data-act="addSetup"><span class="c-title acc">Add setup</span></button></div>
     <p class="foot">Tap a setup to brew with it. Grind sliders, tips and recipes follow the grinder in the setup with the check mark. Everyone who opens this app keeps their own setups and brews.</p>` : ''}
   <div class="sec-h"><span>Data</span></div>
   <div class="grp"><div class="cell"><span class="c-main"><span class="c-title">Sync</span></span><span class="c-val">${syncState === 'cloud' ? 'Your Claude account' : syncState === 'local' ? 'This device only' : 'Loading…'}</span></div></div>
+  <p class="foot">drawdown ${APP_VERSION}</p>
   <p class="foot">${syncState === 'cloud' ? 'Your brews, beans and gear are the same on your iPhone and your Mac.' : syncState === 'local' ? (window.claude ? 'Open this page signed in to Claude to sync between devices.' : 'Saved in this browser on this device. Clearing Safari’s website data removes it.') : ''}</p>`;
 }
 
@@ -1050,7 +1107,7 @@ async function getAdvice(id){
   let advice;
   try { advice = await askJSON(advicePrompt(history, bean, st), { modelTier:'default' }); advice.at = Date.now(); }
   catch(e){
-    if(e && (e.code === 'unavailable' || e.code === 'not_granted')) advice = ruleAdvice(b, st);
+    if(e && (e.code === 'unavailable' || e.code === 'not_granted')) advice = ruleAdvice(b, st, history, bean);
     else { if(box) box.innerHTML = `<div class="err">${esc(errMsg(e))}</div><div class="btn-row"><button class="btn go" data-act="advise" data-id="${b.id}">Try again</button></div>`; return; }
   }
   await save({ ...brewById(id), advice });
@@ -1234,10 +1291,25 @@ function parseLabel(text, lines){
 }
 function starterRecipe(bean, st){
   if(!st) return null;
-  const g = grinderOf(st), z = gZone(g), dark = /dark/.test(bean.roastLevel || ''), light = /light/.test(bean.roastLevel || '');
-  let grind = z ? gStr(g, z.start + (dark ? (g.nudge || 1) : 0)) : '';
-  return { dose:15, water:250, grind, temp: dark ? 90 : light ? 95 : 93, bloomWater:45, bloomTime:45, targetTime:'3:00',
-    pours:'Bloom 45 g, then three even pours to 250 g.', why: `A starting point from your grinder’s V60 range${bean.roastLevel ? ' and the ' + bean.roastLevel + ' roast' : ''}. Log the cup and the tips take it from there.` };
+  const g = grinderOf(st), z = gZone(g), n = g ? (g.nudge || 1) : 1;
+  const roast = bean.roastLevel || '', proc = (bean.process || '').toLowerCase(), origin = (bean.origin || '').toLowerCase();
+  const alt = num(String(bean.altitude || '').replace(/[.,](?=\d{3})/g, '').match(/\d{3,4}/)?.[0]);
+  const days = daysOff(bean.roastDate);
+  let step = 0, temp = 93, ratio = 16.5, bloomT = 45; const notes = [];
+  if(/light/.test(roast)){ temp = 95; ratio = 16; step -= 1; notes.push('light roast: hotter and a touch finer'); }
+  else if(/dark/.test(roast)){ temp = 90; ratio = 15.5; step += 2; notes.push('dark roast: cooler and coarser'); }
+  else if(/medium-dark/.test(roast)){ temp = 91; step += 1; }
+  if(/natural|anaerob|ferment|carbonic|thermal/.test(proc)){ temp -= 1; step += 1; notes.push('fermented or natural process: slightly cooler and coarser to keep it clean'); }
+  else if(/washed/.test(proc) && /ethiopia|kenya|rwanda|burundi/.test(origin)){ temp += 1; notes.push('washed East African: a bit hotter for brightness'); }
+  if(alt && alt >= 1900){ step -= 1; temp += 1; notes.push('high grown, dense beans: finer'); }
+  if(days != null && days < 7){ bloomT = 60; notes.push('very fresh: longer bloom'); }
+  else if(days != null && days > 35){ step -= 1; bloomT = 30; notes.push('older beans: finer, shorter bloom'); }
+  temp = Math.max(88, Math.min(97, temp));
+  const dose = 15, water = Math.round(dose * ratio / 5) * 5;
+  const grind = z ? gStr(g, z.start + step * n) : '';
+  return { dose, water, grind, temp, bloomWater: dose * 3, bloomTime: bloomT, targetTime:'3:00',
+    pours:`Bloom ${dose * 3} g for ${bloomT} s, then three even pours to ${water} g.`,
+    why: notes.length ? `Built from your grinder’s V60 range, with ${notes.join('; ')}.` : 'Built from your grinder’s V60 range. Log the cup and the tips take it from there.' };
 }
 async function ocrRead(job){
   const box = $('#scan-box'), say = m => { if(box && scanJob === job) box.innerHTML = `<div class="grp tip"><span class="note"><span class="spin"></span>${m}</span></div>`; };
@@ -1296,6 +1368,7 @@ function openSetupForm(pre = {}, editId = null){
       <div class="frow"><label for="s-grinder">Model</label><select id="s-grinder">${grinderOptions(setupType, sel)}</select></div>
       <div class="frow" id="s-other-row" ${sel === 'other' ? '' : 'hidden'}><label for="s-grinder-other">Name</label><input id="s-grinder-other" value="${esc(sel === 'other' ? pre.grinder : '')}" placeholder="Brand and model"></div>
     </div>
+    <div class="gprev" id="s-gprev">${gImg(GMAP[sel])}</div>
     <p class="foot" id="s-ginfo">${esc(grinderInfo(GMAP[sel]))}</p>
     <div class="sec-h"><span>Kettle and filter</span></div>
     <div class="grp">
@@ -1325,6 +1398,7 @@ function onGrinderPick(){
   const v = $('#s-grinder').value, info = $('#s-ginfo');
   $('#s-other-row').hidden = v !== 'other';
   info.textContent = grinderInfo(GMAP[v]); restartAnim(info, 'swapin');
+  const pv = $('#s-gprev'); if(pv){ pv.innerHTML = gImg(GMAP[v]); restartAnim(pv, 'swapin'); }
   if(v === 'other') setTimeout(() => $('#s-grinder-other').focus(), 50);
 }
 function switchSetup(id){
