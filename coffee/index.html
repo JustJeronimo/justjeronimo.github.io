@@ -731,7 +731,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.13 · 17 Nov 2026';
+const APP_VERSION = '1.14 · 17 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -990,14 +990,19 @@ const SFX = (() => {
   let ctx = null, out = null, buf = {}, on = true, lastTick = 0, tockFlip = false;
   try { on = localStorage.getItem('drawdown-sound') !== 'off'; } catch(e){}
   function render(spec){
+    // hits: [[offset s, amp], …] — the same strike repeated, e.g. the ball leaving one notch then dropping in the next
     const sr = ctx.sampleRate, len = Math.ceil(sr * spec.len), b = ctx.createBuffer(1, len, sr), d = b.getChannelData(0);
-    const nz = Math.ceil(sr * (spec.noise || 0) / 1000); let hp = 0, prev = 0;
-    for(let i = 0; i < len; i++){
-      const t = i / sr, a = spec.attack ? Math.min(1, t / spec.attack) : 1; let v = 0;
-      for(const [f, tau, amp] of spec.modes) v += amp * Math.sin(2 * Math.PI * f * t) * Math.exp(-t / tau);
-      if(spec.body) v += spec.body[2] * Math.sin(2 * Math.PI * spec.body[0] * t * (1 - t * 2)) * Math.exp(-t / spec.body[1]);
-      if(i < nz){ const n = Math.random() * 2 - 1; hp = .6 * (hp + n - prev); prev = n; v += hp * (spec.noiseAmp || .5) * (1 - i / nz); }
-      d[i] = v * a;
+    const nz = Math.ceil(sr * (spec.noise || 0) / 1000), noise = new Float32Array(nz); let hp = 0, prev = 0;
+    for(let i = 0; i < nz; i++){ const n = Math.random() * 2 - 1; hp = .6 * (hp + n - prev); prev = n; noise[i] = hp * (spec.noiseAmp || .5) * (1 - i / nz); }
+    for(const [off, amp] of spec.hits || [[0, 1]]){
+      const o = Math.round(off * sr);
+      for(let i = o; i < len; i++){
+        const t = (i - o) / sr, a = spec.attack ? Math.min(1, t / spec.attack) : 1; let v = 0;
+        for(const [f, tau, m] of spec.modes) v += m * Math.sin(2 * Math.PI * f * t) * Math.exp(-t / tau);
+        if(spec.body) v += spec.body[2] * Math.sin(2 * Math.PI * spec.body[0] * t * (1 - t * 2)) * Math.exp(-t / spec.body[1]);
+        if(i - o < nz) v += noise[i - o];
+        d[i] += v * a * amp;
+      }
     }
     let pk = 0; for(let i = 0; i < len; i++) pk = Math.max(pk, Math.abs(d[i]));
     const k = (spec.peak || .9) / (pk || 1); for(let i = 0; i < len; i++) d[i] *= k;
@@ -1005,6 +1010,7 @@ const SFX = (() => {
     return b;
   }
   const SPECS = {
+    ode:    { len:.07, noise:.8, noiseAmp:.8, hits:[[0,.22],[.0075,1]], modes:[[2050,.0032,.6],[3650,.0018,.35],[1250,.005,.35],[5300,.001,.2]], body:[420,.009,.45] },
     detent: { len:.045, noise:.6, noiseAmp:.7, modes:[[3150,.0035,.7],[5300,.002,.4],[1480,.006,.3]], body:[190,.009,.35] },
     end:    { len:.09,  noise:.9, noiseAmp:.5, modes:[[880,.012,.5],[2250,.006,.35],[4100,.003,.2]], body:[92,.026,.8] },
     tap:    { len:.06,  noise:1.2, noiseAmp:.45, modes:[[2350,.005,.45],[3950,.003,.3],[1150,.008,.25]], body:[160,.016,.7] },
@@ -1050,9 +1056,9 @@ const SFX = (() => {
     set(v){ on = v; try { localStorage.setItem('drawdown-sound', v ? 'on' : 'off'); } catch(e){} if(v){ unlock(); setTimeout(() => this.tap(), 30); } },
     // slider detent: f = position 0..1 nudges the pitch; fast drags get softer, lighter clicks
     tick(f = .5){ const n = performance.now(), dt = n - lastTick; if(dt < 16) return; lastTick = n;
-      const speed = Math.max(.35, Math.min(1, dt / 70)); play('detent', .16 + .2 * speed, .94 + f * .14 + (1 - speed) * .08); },
+      const speed = Math.max(.35, Math.min(1, dt / 70)); play('ode', .2 + .22 * speed, .97 + f * .06 + (1 - speed) * .05, 0, .025); },
     end(){ play('end', .42, 1); },
-    snap(){ play('detent', .32, 1.02); play('detent', .18, .9, .032); },
+    snap(){ play('ode', .38, 1); },
     tap(){ play('tap', .32, 1); },
     second(){ tockFlip = !tockFlip; play(tockFlip ? 'tick' : 'tock', .07, 1, 0, .01); },
     chime(){ play('bell', .16, 1, 0, 0); },
