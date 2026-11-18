@@ -26,6 +26,7 @@ Features: one guided Brew page (checklist: 01 Beans · 02 Gear · 03 Recipe · 0
 
 - One file: `coffee/index.html` — vanilla JS, no build step, no dependencies. Plus `manifest.webmanifest` and `assets/` (icons, mark SVGs).
 - **Storage adapters:** `cloudStore` (Claude artifact `db`, per user at `data/users/<id>`) when `window.claude` exists; otherwise `localStorage` key `brewlog-v1`. On GitHub Pages there is no `window.claude`, so data is **per device/browser only** and AI is off. Photo reading there uses **on-device OCR** (Tesseract.js 5.1.1 from jsDelivr, loaded on first scan) + `parseLabel()` rules (origin/region/process/varietal/altitude/date/notes lists; biggest text line = name) + `starterRecipe()` from the grinder zone. Bean "Suggest a recipe" and next-brew tips use the rule-based versions.
+- **Account** (v1.17, Bodega pattern, backend in `drawdown/backend/`): `SUPA = {url, key}` (empty = off, app is device-only as before; tests inject `window.DRAWDOWN_SUPA`). No-library client `supa`: Google sign-in with PKCE (`signIn` → `/auth/v1/authorize`, `finishSignIn` swaps `?code` at `/auth/v1/token?grant_type=pkce`; never shows the URL's error text), refresh, `call()`. `supaStore()` checks `am_i_allowed`, loads `public.docs`, uploads guest docs the account lacks on first sign-in, reloads on visibilitychange. `supaAI()` = same shape as Claude's `sample` (callable + `.json`, `.web = true`) via the `ask` Edge Function (Claude key + daily quota); on failure the scan falls back to on-device reading. Settings: Sign in with Google / Signed in · Sign out.
 - Docs in one collection, `kind`: `setup` | `bean` | `brew` | `prefs`. `prefs.plan` is the recipe queued on the Brew screen; cleared after logging.
 - `curPlan()` priority: saved plan → last brew's advice → last brew → starter recipe from the grinder's V60 start.
 - `pourPlan()`: bloom + 3–4 pours, 30 s apart after bloom. `phases()` adds a drawdown phase; the bar runs to the target time.
@@ -85,5 +86,5 @@ Inspired by the *feel* of the beean app (black, italic serif titles, square, out
 
 ## Open items
 
-- AI photo reading + sync on GitHub Pages would need a small backend (Claude API key + database).
+- Account backend written (v1.17) but not live yet: needs the Supabase project, Google OAuth client, Anthropic key, then `SUPA` filled in. See `drawdown/backend/README.md`.
 - Ideas not built yet: grind converter between grinders, water-by-TDS guide, cup-label share cards.

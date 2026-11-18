@@ -649,6 +649,106 @@ async function remove(kind, id){
 let fellBack = false, loadTimer = null, bootNote = '', syncState = 'loading';
 function fallBack(msg){ if(fellBack) return; fellBack = true; bootNote = msg || ''; syncState = 'local'; store = localStore(); store.start(); }
 
+/* ---------- account: Supabase sign-in, sync and AI (web version) ----------
+   No library: Google sign-in with PKCE against Supabase Auth, documents through PostgREST, AI through the `ask`
+   Edge Function (which holds the Claude key). Empty config = the app works exactly as before, on this device only.
+   Backend in drawdown/backend/. Guests keep using localStorage; signing in moves this device's brews to the account. */
+const SUPA = window.DRAWDOWN_SUPA || { url: '', key: '' };
+const AUTH_KEY = 'drawdown-auth', PKCE_KEY = 'drawdown-pkce';
+const supa = {
+  on: () => !!(SUPA.url && SUPA.key),
+  session: (() => { try { return JSON.parse(localStorage.getItem(AUTH_KEY) || 'null'); } catch(e){ return null; } })(),
+  note: '',
+  email(){ return this.session?.user?.email || ''; },
+  keep(s){ this.session = s; try { s ? localStorage.setItem(AUTH_KEY, JSON.stringify(s)) : localStorage.removeItem(AUTH_KEY); } catch(e){} },
+  async signIn(){
+    const raw = crypto.getRandomValues(new Uint8Array(32)), b64u = b => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const verifier = b64u(raw), challenge = b64u(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+    try { localStorage.setItem(PKCE_KEY, verifier); } catch(e){}
+    const back = location.origin + location.pathname;
+    location.href = `${SUPA.url}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(back)}&code_challenge=${challenge}&code_challenge_method=s256`;
+  },
+  /* back from Google: ?code=… (or ?error=…). Never show the raw error text from the URL. */
+  async finishSignIn(){
+    const u = new URL(location.href), code = u.searchParams.get('code'), err = u.searchParams.get('error') || u.searchParams.get('error_code');
+    if(!code && !err) return;
+    const desc = (u.searchParams.get('error_description') || '').toLowerCase();
+    ['code','error','error_code','error_description','state'].forEach(k => u.searchParams.delete(k));
+    history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+    if(err){ this.note = /not on the list|database error saving new user/.test(desc) ? 'That Google account isn’t on the list. Ask Jeroen to add it.' : 'Sign-in didn’t finish. Try again.'; return; }
+    let verifier = ''; try { verifier = localStorage.getItem(PKCE_KEY) || ''; localStorage.removeItem(PKCE_KEY); } catch(e){}
+    try {
+      const r = await fetch(`${SUPA.url}/auth/v1/token?grant_type=pkce`, { method:'POST', headers:{ apikey: SUPA.key, 'Content-Type':'application/json' }, body: JSON.stringify({ auth_code: code, code_verifier: verifier }) });
+      if(!r.ok) throw 0;
+      this.keep(this.shape(await r.json()));
+    } catch(e){ this.note = 'Sign-in didn’t finish. Try again.'; }
+  },
+  shape(j){ return { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || Math.floor(Date.now() / 1000) + (j.expires_in || 3600), user: { id: j.user?.id, email: j.user?.email } }; },
+  async token(){
+    const s = this.session; if(!s) return null;
+    if(s.expires_at * 1000 > Date.now() + 60000) return s.access_token;
+    const r = await fetch(`${SUPA.url}/auth/v1/token?grant_type=refresh_token`, { method:'POST', headers:{ apikey: SUPA.key, 'Content-Type':'application/json' }, body: JSON.stringify({ refresh_token: s.refresh_token }) }).catch(() => null);
+    if(!r) throw { code:'offline' };
+    if(!r.ok){ this.keep(null); return null; }
+    this.keep(this.shape(await r.json())); return this.session.access_token;
+  },
+  async call(path, opts = {}){
+    const t = await this.token(); if(!t) throw { code:'signed_out' };
+    const r = await fetch(SUPA.url + path, { ...opts, headers:{ apikey: SUPA.key, Authorization: 'Bearer ' + t, 'Content-Type':'application/json', ...(opts.headers || {}) } });
+    if(r.status === 401){ this.keep(null); throw { code:'signed_out' }; }
+    if(!r.ok) throw { code: r.status === 429 ? 'rate_limited' : r.status === 403 ? 'not_on_list' : 'http_' + r.status };
+    return r.status === 204 || r.headers.get('content-length') === '0' ? null : r.json().catch(() => null);
+  },
+  async signOut(){
+    try { await this.call('/auth/v1/logout', { method:'POST' }); } catch(e){}
+    this.keep(null);
+  }
+};
+/* documents live in public.docs (user_id, id, kind, data); RLS keeps each person to their own rows */
+async function supaStore(){
+  if(!supa.session) return null;
+  const ok = await supa.call('/rest/v1/rpc/am_i_allowed', { method:'POST', body:'{}' }).catch(e => { if(e.code === 'offline') throw e; return false; });
+  if(ok !== true){ await supa.signOut(); supa.note = 'That Google account isn’t on the list. Ask Jeroen to add it.'; return null; }
+  const load = async () => (await supa.call('/rest/v1/docs?select=id,data&limit=5000') || []).map(r => ({ ...r.data, id: r.id }));
+  const put = o => supa.call('/rest/v1/docs?on_conflict=user_id,id', { method:'POST', headers:{ Prefer:'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id: o.id, kind: o.kind, data: o }) });
+  let rows = await load();
+  /* first sign-in on this device: bring the guest brews along (anything the account doesn't have yet) */
+  let local = {}; try { local = JSON.parse(localStorage.getItem('brewlog-v1') || '{}'); } catch(e){}
+  const have = new Set(rows.map(r => r.id)), fresh = Object.values(local).filter(d => d && d.id && d.kind && !have.has(d.id) && !(d.kind === 'prefs' && have.has('prefs')));
+  if(fresh.length){
+    for(let i = 0; i < fresh.length; i += 200){
+      await supa.call('/rest/v1/docs?on_conflict=user_id,id', { method:'POST', headers:{ Prefer:'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(fresh.slice(i, i + 200).map(o => ({ id: o.id, kind: o.kind, data: o }))) });
+    }
+    supa.moved = fresh.filter(d => d.kind === 'brew' || d.kind === 'bean').length;
+    rows = await load();
+  }
+  return {
+    mode:'supa',
+    start(){
+      clearTimeout(loadTimer); syncState = 'supa'; ingest(rows);
+      /* pick up changes from the other phone when the app comes back */
+      document.addEventListener('visibilitychange', async () => { if(document.visibilityState === 'visible' && store?.mode === 'supa' && !sheetOpen()){ try { ingest(await load()); } catch(e){} } });
+    },
+    put,
+    del(id){ return supa.call(`/rest/v1/docs?id=eq.${encodeURIComponent(id)}`, { method:'DELETE' }); }
+  };
+}
+/* AI through the `ask` function: same shape as Claude's `sample` capability (callable + .json) */
+async function blobB64(b){ const buf = new Uint8Array(await b.arrayBuffer()); let s = ''; for(let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000)); return btoa(s); }
+function supaAI(){
+  const ask = async (prompt, opts = {}) => {
+    const images = await Promise.all((opts.images || []).slice(0, 1).map(i => typeof i === 'string' ? i.replace(/^data:[^,]+,/, '') : blobB64(i)));
+    let r;
+    try { r = await supa.call('/functions/v1/ask', { method:'POST', body: JSON.stringify({ prompt, images }) }); }
+    catch(e){ throw e.code === 'rate_limited' ? { code:'rate_limited' } : e.code === 'http_503' ? { code:'unavailable' } : e.code === 'signed_out' ? { code:'signed_out' } : { code:'ai_failed', message: 'The AI didn’t answer. Try again, or fill it in by hand.' }; }
+    return { text: (r && r.text) || '' };
+  };
+  const f = (p, o) => ask(p, o);
+  f.json = async (p, o) => { const r = await ask(p, o); const m = r.text.match(/\{[\s\S]*\}/); if(!m) throw { code:'ai_failed', message:'The AI answer couldn’t be read. Try again.' }; return JSON.parse(m[0]); };
+  f.web = true;
+  return f;
+}
+
 /* ---------- lookups ---------- */
 const setupById = id => S.setups.find(s => s.id === id);
 const beanById = id => S.beans.find(b => b.id === id);
@@ -733,7 +833,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.16 · 17 Nov 2026';
+const APP_VERSION = '1.17 · 18 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -809,7 +909,7 @@ function pourPlan(p){
 /* ---------- AI ---------- */
 /* AI is resolved once at start-up, so a tap can call it straight away: the first call shows Claude's
    permission prompt, and that prompt only appears when the call comes directly from a tap. */
-let AI = null, aiReady = use('sample').then(s => (AI = s));
+let AI = supa.on() && supa.session ? supaAI() : null, aiReady = use('sample').then(s => (AI = s || AI));
 async function askJSON(prompt, opts = {}){
   const s = AI || await aiReady;
   if(!s) throw { code:'unavailable', message:'AI isn’t available in this view.' };
@@ -826,7 +926,8 @@ function errMsg(e){
   if(!e) return 'Something went wrong. Try again.';
   if(e.code === 'unavailable') return window.claude ? 'AI needs Claude: open this app while signed in to Claude (claude.ai or the Claude app). If a friend shared it, open their link signed in.' : 'Photo reading and AI tips aren’t on the web version yet. Fill in the details by hand.';
   if(e.code === 'not_granted') return 'AI wasn’t allowed for this app. Tap the button again and choose Allow when Claude asks.';
-  if(e.code === 'rate_limited') return 'Too many AI requests right now. Wait a minute and try again.';
+  if(e.code === 'rate_limited') return AI && AI.web ? 'That’s today’s AI limit.' : 'Too many AI requests right now. Wait a minute and try again.';
+  if(e.code === 'signed_out') return 'You’re signed out. Sign in again in Settings.';
   return e.message || 'Something went wrong. Try again.';
 }
 const RECIPE_SHAPE = '{"dose":15,"water":250,"grind":"4.1","temp":94,"bloomWater":45,"bloomTime":45,"targetTime":"3:00","pours":"short pour plan","why":"one or two sentences"}';
@@ -979,6 +1080,7 @@ $('#sheet-close').onclick = closeSheet; $('#scrim').onclick = closeSheet;
   top.addEventListener('pointerup', end); top.addEventListener('pointercancel', end);
 })();
 document.addEventListener('touchstart', () => {}, { passive:true }); /* lets iOS show :active press states */
+function toast(msg){ const d = document.createElement('div'); d.className = 'grp tip'; d.innerHTML = '<span class="note"></span>'; d.firstChild.textContent = msg; $('#view').prepend(d); setTimeout(() => d.remove(), 5000); }
 function toastErr(msg){ const d = document.createElement('div'); d.className = 'err'; d.textContent = msg; $('#view').prepend(d); setTimeout(() => d.remove(), 5000); }
 
 /* ---------- form widgets ---------- */
@@ -1786,7 +1888,7 @@ async function onPhoto(file){
 function showScanBox(note, canRead){
   const box = $('#scan-box'); if(!box || !scanJob) return;
   const st = scanJob.st;
-  const intro = AI ? `AI reads the label${st ? ' and suggests a starting recipe for ' + esc(setupLabel(st)) : ''}. The first time, Claude asks you to allow it.`
+  const intro = AI ? `AI reads the label${st ? ' and suggests a starting recipe for ' + esc(setupLabel(st)) : ''}.${AI.web ? '' : ' The first time, Claude asks you to allow it.'}`
     : `Your phone reads the text on the label and fills in what it finds${st ? ', with a starting recipe for ' + esc(setupLabel(st)) : ''}. Check the details after.`;
   box.innerHTML = `${note ? `<div class="err">${esc(note)}</div>` : `<div class="grp tip"><span class="note">${intro}</span></div>`}
     <div class="btn-row">${canRead ? '<button class="btn go" data-act="readLabel">Read label</button>' : ''}<button class="btn" data-act="scanManual">Fill in by hand</button></div>`;
@@ -1806,6 +1908,7 @@ function readLabel(btn){
     openBeanForm({ ...bean, photo: job.thumb, recipes, fromScan:true });
   }).catch(e => {
     if(!sheetOpen() || scanJob !== job) return;
+    if(AI && AI.web){ toastErr(errMsg(e) + ' Reading it on your phone instead.'); return ocrRead(job); }
     showScanBox(errMsg(e) + (e && e.code && !['unavailable','not_granted','rate_limited'].includes(e.code) ? ` (${e.code})` : ''), e?.code !== 'unavailable');
   });
 }
@@ -2179,12 +2282,17 @@ function switchSetup(id){
 
 /* ---------- settings ---------- */
 function openSettings(){
-  const where = syncState === 'cloud' ? 'Your Claude account' : syncState === 'local' ? 'This device' : 'Loading…';
+  const where = syncState === 'cloud' ? 'Your Claude account' : syncState === 'supa' ? 'Your account' : syncState === 'local' ? 'This device' : 'Loading…';
+  const acct = !window.claude && supa.on() ? (supa.session
+    ? `<div class="cell"><span class="c-main"><span class="c-title">Signed in</span><span class="c-sub">${esc(supa.email())} · synced on every device you sign in on</span></span><button class="link" data-act="signOut">Sign out</button></div>`
+    : `<div class="cell"><span class="c-main"><span class="c-title">Sign in to sync</span><span class="c-sub">Same brews on your phone and Mac, and AI reads the labels. Without it, everything stays on this device.</span></span><button class="link" data-act="signIn">Sign in with Google</button></div>`) : '';
   openSheet('Settings', `
+    ${supa.note ? `<div class="err">${esc(supa.note)}</div>` : ''}
+    ${acct ? `<div class="grp" style="margin-top:12px">${acct}</div>` : ''}
     <div class="grp" style="margin-top:12px">
       <div class="cell"><span class="c-main"><span class="c-title">Version</span></span><span class="c-val num">${esc(APP_VERSION)}</span></div>
       <div class="cell"><span class="c-main"><span class="c-title">Brews saved on</span></span><span class="c-val">${where}</span></div>
-      <div class="cell"><span class="c-main"><span class="c-title">Photo reading</span></span><span class="c-val">${AI ? 'AI (Claude)' : 'On your phone'}</span></div>
+      <div class="cell"><span class="c-main"><span class="c-title">Photo reading</span></span><span class="c-val">${AI ? (AI.web ? 'AI (Claude, via your account)' : 'AI (Claude)') : 'On your phone'}</span></div>
       <div class="cell"><span class="c-main"><span class="c-title">Sounds</span><span class="c-sub">Slider ticks, timer, pour chimes.</span></span><button class="link" id="snd" data-act="sound" aria-pressed="${SFX.on}">${SFX.on ? 'On' : 'Off'}</button></div>
       <div class="cell"><span class="c-main"><span class="c-title">Play on silent</span><span class="c-sub">Sounds even with the mute switch on. Off: they follow it.</span></span><button class="link" id="snd-s" data-act="soundSilent" aria-pressed="${SFX.silent}">${SFX.silent ? 'On' : 'Off'}</button></div>
     </div>
@@ -2276,6 +2384,8 @@ const ACT = {
   editSetup(id){ const s = setupById(id); if(s) openSetupForm(s, id); },
   useSetup(id){ switchSetup(id); },
   settings(){ openSettings(); },
+  signIn(){ supa.signIn(); },
+  async signOut(){ await supa.signOut(); location.replace(location.pathname + location.hash); },
   checkUpdate(){ checkUpdate(); },
   reloadApp(){ location.replace(location.pathname + '?v=' + Date.now() + location.hash); },
   gtype(t){
@@ -2299,6 +2409,16 @@ route();
   const [db, user] = await Promise.all([use('db'), use('user')]);
   if(fellBack) return;
   if(db && user){ try { const cs = await cloudStore(db, user); if(cs){ store = cs; cs.start(); return; } } catch(e){} }
+  /* web version with an account set up: finish a Google sign-in, then sync */
+  if(!window.claude && supa.on()){
+    await supa.finishSignIn();
+    if(supa.session){
+      try { const ss = await supaStore(); if(fellBack) return; if(ss){ store = ss; AI = AI || supaAI(); ss.start(); if(supa.moved) toast(`Moved ${supa.moved} brews and beans from this phone to your account.`); return; } }
+      catch(e){ clearTimeout(loadTimer); return fallBack('Couldn’t reach your account. Saving on this device for now.'); }
+      AI = AI && AI.web ? null : AI;
+    }
+    if(supa.note){ clearTimeout(loadTimer); fallBack(''); return setTimeout(openSettings, 400); }
+  }
   clearTimeout(loadTimer); fallBack('');
 })();
 </script>

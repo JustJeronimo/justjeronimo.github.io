@@ -188,7 +188,8 @@ with sync_playwright() as p:
     check('beans got palettes', all(pg.evaluate("S.beans.filter(b => b.photo).map(b => (b.palette||[]).length)")), str(pg.evaluate("S.beans.map(b => b.palette)")))
     pg.goto(URL + '#journal'); pg.wait_for_timeout(700)
     pg.evaluate("calMonth = new Date(2026, 10, 1)"); pg.click('[data-act=seg][data-id=cal]'); pg.wait_for_timeout(700)
-    check('calendar paints brew days', pg.locator('.cal-d.has').count() == 7 and pg.locator('.cal-d.has .cal-c').count() >= 8, str(pg.locator('.cal-d.has').count()))
+    nov_days = pg.evaluate("new Set(S.brews.filter(b => { const d = new Date(b.date); return d.getFullYear() === 2026 && d.getMonth() === 10; }).map(b => new Date(b.date).getDate())).size")
+    check('calendar paints brew days', pg.locator('.cal-d.has').count() == nov_days and nov_days >= 7 and pg.locator('.cal-d.has .cal-c').count() >= 8, str(pg.locator('.cal-d.has').count()))
     pg.screenshot(path='/tmp/drawdown-calendar.png', full_page=True)
     pg.click('.cal-d.has >> nth=0'); pg.wait_for_timeout(300)
     check('tap a day lists its brews', pg.locator('#jbody .cell[data-act=brew]').count() == 2)
@@ -205,6 +206,7 @@ with sync_playwright() as p:
     check('sounds toggle', 'Sounds' in pg.inner_text('#sheet-body'))
     pg.click('#snd'); check('sound off persists', pg.evaluate("localStorage.getItem('drawdown-sound')") == 'off'); pg.click('#snd')
     check('settings shows version', ver in pg.inner_text('#sheet-body'), ver)
+    check('no sign-in without an account set up', 'Sign in' not in pg.inner_text('#sheet-body'))
     pg.click('[data-act=checkUpdate]'); pg.wait_for_timeout(900)
     check('update check says latest', 'latest version' in pg.inner_text('#upd'), pg.inner_text('#upd'))
     pg.screenshot(path='/tmp/drawdown-settings.png')
@@ -279,6 +281,63 @@ with sync_playwright() as p:
             check('detail: washed Kenyan gets hotter', ob['process'] == 'Washed' and '+1°' in pg4.inner_text('.bk-key'), pg4.inner_text('.bk-key'))
             pg4.screenshot(path='/tmp/drawdown-bean-edited.png')
         check(f'label {fn}: no page errors', not errs4, '; '.join(errs4))
+    # 9. account (Supabase stubbed): sign-in, moving guest brews, sync, AI through the ask function
+    STUB = 'https://stub.supabase.co'
+    INIT = "window.DRAWDOWN_SUPA={url:'%s',key:'pk_test'};" % STUB
+    server, calls = {}, []
+    def stub(route):
+        req = route.request; url = req.url; path = url.split(STUB, 1)[1]
+        calls.append((req.method, path.split('?')[0], req.post_data or ''))
+        js = lambda body, st=200: route.fulfill(status=st, content_type='application/json', body=json.dumps(body))
+        if '/auth/v1/token' in path:
+            return js({'access_token': 'at2', 'refresh_token': 'rt2', 'expires_in': 3600, 'user': {'id': 'u1', 'email': 'jeroen@example.com'}})
+        if path.startswith('/auth/v1/logout'): return route.fulfill(status=204, body='')
+        if path.startswith('/rest/v1/rpc/am_i_allowed'): return js(True)
+        if path.startswith('/rest/v1/docs'):
+            if req.method == 'GET': return js([{'id': k, 'data': v} for k, v in server.items()])
+            if req.method == 'POST':
+                body = json.loads(req.post_data); body = body if isinstance(body, list) else [body]
+                for r in body: server[r['id']] = r['data']
+                return route.fulfill(status=201, body='')
+            if req.method == 'DELETE':
+                server.pop(re.search(r'id=eq\.([^&]+)', path).group(1), None); return route.fulfill(status=204, body='')
+        if path.startswith('/functions/v1/ask'):
+            return js({'text': json.dumps({'bean': {'name': 'Kochere', 'roaster': 'Test', 'origin': 'Ethiopia', 'process': 'Washed', 'roastLevel': 'light', 'roastDate': ''}, 'recipe': {'dose': 15, 'water': 250, 'grind': '4.1', 'temp': 94, 'bloomWater': 45, 'bloomTime': 45, 'targetTime': '3:00'}})})
+        return js({'error': 'unknown'}, 404)
+    SESSION = {'access_token': 'at1', 'refresh_token': 'rt1', 'expires_at': 4102444800, 'user': {'id': 'u1', 'email': 'jeroen@example.com'}}
+    pg5 = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, has_touch=True)
+    errs5 = []; pg5.on('pageerror', lambda e: errs5.append(str(e)))
+    pg5.add_init_script(INIT); pg5.route(STUB + '/**', stub)
+    pg5.goto(URL); pg5.evaluate(f"localStorage.setItem('brewlog-v1', JSON.stringify({json.dumps(SEED)})); localStorage.setItem('drawdown-auth', JSON.stringify({json.dumps(SESSION)}))")
+    pg5.reload(); pg5.wait_for_timeout(1500)
+    check('account: guest brews move to the account', set(server) == set(SEED), str(sorted(server)))
+    check('account: syncing', pg5.evaluate('syncState') == 'supa' and pg5.evaluate('store.mode') == 'supa')
+    pg5.click('[data-act=settings]'); pg5.wait_for_timeout(600)
+    st5 = pg5.inner_text('#sheet-body')
+    check('account: settings shows who', 'jeroen@example.com' in st5 and 'Sign out' in st5 and 'Your account' in st5 and 'via your account' in st5, st5[:200])
+    pg5.evaluate('closeSheet()'); pg5.wait_for_timeout(500)
+    pg5.evaluate("save({...brewById('brew_a'), notes:'Synced'})"); pg5.wait_for_timeout(400)
+    check('account: edits reach the server', server['brew_a']['notes'] == 'Synced')
+    pg5.goto(URL + '#beans'); pg5.wait_for_timeout(1200)
+    pg5.set_input_files('#pick', img); pg5.wait_for_timeout(1000)
+    pg5.click('[data-act=readLabel]'); pg5.wait_for_timeout(1200)
+    ask = [c for c in calls if c[1] == '/functions/v1/ask']
+    check('account: AI label reading through ask', len(ask) == 1 and len(json.loads(ask[0][2])['images']) == 1 and pg5.evaluate("document.getElementById('b-name')?.value") == 'Kochere', str(len(ask)))
+    check('account: no page errors', not errs5, '; '.join(errs5))
+    # Google sign-in coming back with ?code (PKCE)
+    pg6 = b.new_page(viewport={"width": 390, "height": 844}); errs6 = []; pg6.on('pageerror', lambda e: errs6.append(str(e)))
+    pg6.add_init_script(INIT); pg6.route(STUB + '/**', stub)
+    pg6.goto(URL); pg6.evaluate("localStorage.clear(); localStorage.setItem('drawdown-pkce', 'verifier123')")
+    calls.clear(); pg6.goto(URL + '?code=abc123'); pg6.wait_for_timeout(1500)
+    tok = [c for c in calls if c[1] == '/auth/v1/token']
+    check('sign-in: code swapped for a session', bool(tok) and json.loads(tok[0][2]) == {'auth_code': 'abc123', 'code_verifier': 'verifier123'} and pg6.evaluate("JSON.parse(localStorage.getItem('drawdown-auth')).user.email") == 'jeroen@example.com' and 'code=' not in pg6.url, pg6.url)
+    # Google sign-in refused: friendly words, never the raw error
+    pg6.evaluate("localStorage.removeItem('drawdown-auth')")
+    pg6.goto(URL + '?error=server_error&error_description=Database+error+saving+new+user'); pg6.wait_for_timeout(1500)
+    txt = pg6.inner_text('body')
+    check('sign-in: not on the list', 'isn’t on the list' in txt and 'Database error' not in txt and 'error=' not in pg6.url, pg6.url)
+    pg6.screenshot(path='/tmp/drawdown-signin.png')
+    check('sign-in: no page errors', not errs6, '; '.join(errs6))
     b.close()
 httpd.shutdown()
 print('ALL PASS' if not fails else f'{len(fails)} FAILED: ' + ', '.join(fails))
