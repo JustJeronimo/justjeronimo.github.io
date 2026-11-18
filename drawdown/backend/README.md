@@ -7,7 +7,7 @@ This backend adds Google sign-in, per-person sync and AI label reading to the Gi
 - `schema.sql` sets up the database:
   - `allowed_emails` with a sign-up guard (`Not on the list.`)
   - `docs` (user_id, id, kind, data jsonb) with RLS and a cap of 3000 rows per person
-  - the AI quota: 30 requests per person and 300 site-wide per UTC day, with refunds on failure
+  - the AI quota: 30 requests per person and 300 site-wide per UTC day; failed calls still count
 - `functions/ask/index.ts` holds `ANTHROPIC_API_KEY` and calls Claude, with an optional image. Set `verify_jwt` on.
 - The app side lives in `coffee/index.html` under `account: Supabase sign-in, sync and AI`. It's a no-library client: PKCE sign-in, PostgREST and the function. `SUPA = { url, key }` turns it on. With an empty value, the app runs on this device only, the same as before.
 

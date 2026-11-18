@@ -86,5 +86,5 @@ Inspired by the *feel* of the beean app (black, italic serif titles, square, out
 
 ## Open items
 
-- Account backend written (v1.17) but not live yet: needs the Supabase project, Google OAuth client, Anthropic key, then `SUPA` filled in. See `drawdown/backend/README.md`.
+- Account backend (v1.17): Supabase project **drawdown** (`iwevmoxaovmfofoiherd`, eu-central-1, https://iwevmoxaovmfofoiherd.supabase.co) has the schema and the `ask` function. Still to do: owner email in `allowed_emails`, `ANTHROPIC_API_KEY` secret, Google OAuth client + provider, Auth URL config, then fill `SUPA` (url + `sb_publishable_…` key) and ship. See `drawdown/backend/README.md`.
 - Ideas not built yet: grind converter between grinders, water-by-TDS guide, cup-label share cards.

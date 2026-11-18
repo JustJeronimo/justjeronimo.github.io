@@ -74,7 +74,7 @@ create or replace function private.touch() returns trigger language plpgsql as $
 drop trigger if exists docs_touch on public.docs;
 create trigger docs_touch before update on public.docs for each row execute function private.touch();
 
--- AI quota: 30 requests per person per UTC day, 300 for the whole site ----
+-- AI quota: 30 requests per person per UTC day, 300 for the whole site -----
 create table if not exists public.ai_usage (
   user_id uuid not null references auth.users (id) on delete cascade,
   day date not null default (now() at time zone 'utc')::date,
@@ -97,14 +97,9 @@ begin
   return true;
 end $$;
 
-create or replace function public.ai_refund_quota() returns void
-language sql security definer set search_path = '' as $$
-  update public.ai_usage set n = greatest(n - 1, 0) where user_id = auth.uid() and day = (now() at time zone 'utc')::date;
-$$;
+-- no refund function: one the browser can call would let anyone reset their own quota. Failed calls count.
 revoke execute on function public.ai_take_quota() from anon, public;
-revoke execute on function public.ai_refund_quota() from anon, public;
 grant execute on function public.ai_take_quota() to authenticated;
-grant execute on function public.ai_refund_quota() to authenticated;
 
 -- seed: the owner (replace before running), then friends the same way
 -- insert into public.allowed_emails (email, note) values ('you@example.com', 'owner') on conflict do nothing;

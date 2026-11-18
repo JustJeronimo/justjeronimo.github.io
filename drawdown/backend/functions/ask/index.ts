@@ -1,6 +1,6 @@
 // drawdown `ask` — Supabase Edge Function. Holds the Anthropic key and asks Claude for the signed-in user.
 // Deploy with verify_jwt on. Secrets: ANTHROPIC_API_KEY (required), ANTHROPIC_MODELS (optional, comma list).
-// Order: CORS → POST only from allowed origins → key present → user token → allow-list → validate → quota → Claude → refund on failure.
+// Order: CORS → POST only from allowed origins → key present → user token → allow-list → validate → quota → Claude (failed calls still count; a browser-callable refund would let anyone reset their quota).
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4';
 
 const ORIGINS = ['https://justjeronimo.github.io'];
@@ -63,6 +63,5 @@ Deno.serve(async (req) => {
       return out(200, { text, model });
     } catch (_) { /* try the next model */ }
   }
-  await sb.rpc('ai_refund_quota');
   return out(502, { error: 'upstream' });
 });
