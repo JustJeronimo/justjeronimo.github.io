@@ -86,5 +86,5 @@ Inspired by the *feel* of the beean app (black, italic serif titles, square, out
 
 ## Open items
 
-- Account backend (v1.17): Supabase project **drawdown** (`iwevmoxaovmfofoiherd`, eu-central-1, https://iwevmoxaovmfofoiherd.supabase.co) has the schema and the `ask` function. Still to do: owner email in `allowed_emails`, `ANTHROPIC_API_KEY` secret, Google OAuth client + provider, Auth URL config, then fill `SUPA` (url + `sb_publishable_…` key) and ship. See `drawdown/backend/README.md`.
+- Account backend (v1.17): Supabase project **drawdown** (`iwevmoxaovmfofoiherd`, eu-central-1, https://iwevmoxaovmfofoiherd.supabase.co) has the schema and the `ask` function. Live since v1.18: `SUPA` filled, Google provider on (OAuth client in Google Cloud project "drawdown", testing mode — test users only, or publish), allow-list has jeroenbaars1994@gmail.com (owner) and k.vendrik@gmail.com (friend; Google said that address isn't a Google account — check). The cloud sandbox can't reach supabase.co, so live sign-in can only be checked on a device. See `drawdown/backend/README.md`.
 - Ideas not built yet: grind converter between grinders, water-by-TDS guide, cup-label share cards.

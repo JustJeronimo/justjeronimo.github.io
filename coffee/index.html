@@ -653,7 +653,7 @@ function fallBack(msg){ if(fellBack) return; fellBack = true; bootNote = msg || 
    No library: Google sign-in with PKCE against Supabase Auth, documents through PostgREST, AI through the `ask`
    Edge Function (which holds the Claude key). Empty config = the app works exactly as before, on this device only.
    Backend in drawdown/backend/. Guests keep using localStorage; signing in moves this device's brews to the account. */
-const SUPA = window.DRAWDOWN_SUPA || { url: '', key: '' };
+const SUPA = window.DRAWDOWN_SUPA || { url: 'https://iwevmoxaovmfofoiherd.supabase.co', key: 'sb_publishable_l1uOJuHK89BiwBw9S2jKAA_YqWFh-q1' }; /* publishable key: safe in the page, RLS does the guarding */
 const AUTH_KEY = 'drawdown-auth', PKCE_KEY = 'drawdown-pkce';
 const supa = {
   on: () => !!(SUPA.url && SUPA.key),
@@ -833,7 +833,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.17 · 18 Nov 2026';
+const APP_VERSION = '1.18 · 18 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){

@@ -206,7 +206,7 @@ with sync_playwright() as p:
     check('sounds toggle', 'Sounds' in pg.inner_text('#sheet-body'))
     pg.click('#snd'); check('sound off persists', pg.evaluate("localStorage.getItem('drawdown-sound')") == 'off'); pg.click('#snd')
     check('settings shows version', ver in pg.inner_text('#sheet-body'), ver)
-    check('no sign-in without an account set up', 'Sign in' not in pg.inner_text('#sheet-body'))
+    check('signed out: offers Google sign-in, saves on this device', 'Sign in with Google' in pg.inner_text('#sheet-body') and 'This device' in pg.inner_text('#sheet-body'))
     pg.click('[data-act=checkUpdate]'); pg.wait_for_timeout(900)
     check('update check says latest', 'latest version' in pg.inner_text('#upd'), pg.inner_text('#upd'))
     pg.screenshot(path='/tmp/drawdown-settings.png')
