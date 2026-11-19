@@ -476,16 +476,28 @@ body.sheet-up #dock{opacity:0;pointer-events:none}
    square; critically damped spring (no overshoot), content eases in after a third of the way. */
 nav{display:none!important}
 main{padding-bottom:calc(env(safe-area-inset-bottom) + 40px)}
-#jr{position:fixed;inset:0;z-index:15;background:var(--bg);visibility:hidden;will-change:clip-path}
-#jr-scroll{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
-#jrv{transform-origin:85% 0;will-change:transform,opacity}
-#jr-btns{position:fixed;z-index:16;display:flex;gap:8px;visibility:hidden}
-#jr-btns .iconbtn{margin:0;background:var(--bg)}
-#jr-x{position:relative}
-#jr-x span{position:absolute;inset:11px;display:block;will-change:transform,opacity}
-#jr-x span svg,#jr-cog svg{width:22px;height:22px;display:block}
-#jr-grab{position:absolute;top:0;left:0;right:120px;height:calc(env(safe-area-inset-top) + 64px);z-index:1;touch-action:none}
-.fl-btns{display:flex;gap:8px}
+/* ---------- two pages, swiped (v1.23): titles are the tabs; Journal stacks over Next cup. The page you're not on
+   sits smaller and softly blurred, its title too; selecting brings it to size and into focus. ---------- */
+:root{--hdr:calc(env(safe-area-inset-top) + 74px)}
+#hdr{position:fixed;top:0;left:0;right:0;z-index:17;background:var(--bg);touch-action:pan-y}
+#hdr-in{max-width:600px;margin:0 auto;display:flex;align-items:flex-end;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 14px) 20px 14px}
+#hdr-hl{position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--sep);opacity:0}
+.titles{position:relative;display:flex;align-items:flex-end;gap:16px;height:46px}
+.tw{position:relative;display:block;transform-origin:0 100%;will-change:transform}
+.ttab{position:relative;display:block;font:italic 400 44px/1 var(--serif);letter-spacing:-.01em;color:#6e6e6e;white-space:nowrap;background:none;border:0;padding:0;margin:0;transition:opacity 160ms ease-out;touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.ttab::after{content:"";position:absolute;inset:-10px -10px -8px -10px}
+.ttab:active,.tw.pressed .ttab{opacity:.55;transition-duration:0s}
+.hx{position:absolute;inset:-10px;width:calc(100% + 20px);height:calc(100% + 20px);margin:0;opacity:0;z-index:2;touch-action:pan-y;-webkit-tap-highlight-color:transparent}
+.ind{position:absolute;left:0;bottom:-8px;width:1px;height:1.5px;transform-origin:0 0;will-change:transform}
+.ind b{display:block;width:100%;height:100%;background:var(--label);transform-origin:50% 0}
+@keyframes clunk{0%{transform:scaleY(2.2)}100%{transform:none}}
+.ind.clunk b{animation:clunk 240ms var(--ease)}
+#hdr .iconbtn{margin:0 0 1px}
+#view{padding-top:calc(var(--hdr) + 6px);touch-action:pan-y;transform-origin:50% 0}
+#jr{position:fixed;inset:0;z-index:15;background:var(--bg);visibility:hidden;transform-origin:0 50%;box-shadow:-24px 0 48px rgba(0,0,0,.55);will-change:transform}
+#jr-scroll{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+#jrv{padding-top:calc(var(--hdr) + 6px)}
+.pg-eye{margin:10px 4px 14px}
 .jbtn{color:var(--label)!important}
 .jbtn svg{width:22px;height:22px}
 /* ---------- brew flow (checklist + hero timer) ---------- */
@@ -570,9 +582,10 @@ main{padding-bottom:calc(env(safe-area-inset-bottom) + 40px)}
 <main id="view"></main>
 <div id="dock" class="away"></div>
 
-<div id="jr" aria-hidden="true" role="dialog" aria-label="Journal"><div id="jr-scroll"><main id="jrv"></main></div>
-  <div id="jr-grab" aria-hidden="true"></div></div>
-<div id="jr-btns"><button class="iconbtn jbtn" id="jr-x" data-act="journalClose" aria-label="Back to brewing"><span class="i-book"></span><span class="i-cup"></span></button><button class="iconbtn jbtn" id="jr-cog" data-act="settings" aria-label="Settings and version"></button></div>
+<header id="hdr"><div id="hdr-in"><div class="titles" role="tablist" aria-label="Screens">
+  <span class="tw"><button class="ttab" id="tab0" role="tab" aria-controls="view">Next cup</button></span><span class="tw"><button class="ttab" id="tab1" role="tab" aria-controls="jr">Journal</button></span><span class="ind"><b></b></span></div>
+  <button class="iconbtn jbtn" id="set-btn" data-act="settings" aria-label="Settings and version"></button></div><i id="hdr-hl"></i></header>
+<div id="jr" aria-hidden="true" role="tabpanel" aria-labelledby="tab1"><div id="jr-scroll"><main id="jrv"></main></div></div>
 
 <input type="file" id="cam" accept="image/*" capture="environment" hidden>
 <input type="file" id="pick" accept="image/*" hidden>
@@ -854,7 +867,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.22 · 19 Nov 2026';
+const APP_VERSION = '1.23 · 19 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -1451,8 +1464,6 @@ function goStep(n){
   requestAnimationFrame(() => { const el = document.querySelector('.fl-step.on'); if(el) el.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block:'start' }); });
 }
 const COG_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="miter" stroke-linecap="butt" aria-hidden="true"><path d="M18.76 9.83L21.03 10.26L21.03 13.74L18.76 14.17A7.1 7.1 0 0 1 16.61 17.40L18.31 15.25L19.62 17.16L17.16 19.62L15.25 18.31A7.1 7.1 0 0 1 11.44 19.08L14.17 18.76L13.74 21.03L10.26 21.03L9.83 18.76A7.1 7.1 0 0 1 6.60 16.61L8.75 18.31L6.84 19.62L4.38 17.16L5.69 15.25A7.1 7.1 0 0 1 4.92 11.44L5.24 14.17L2.97 13.74L2.97 10.26L5.24 9.83A7.1 7.1 0 0 1 7.39 6.60L5.69 8.75L4.38 6.84L6.84 4.38L8.75 5.69A7.1 7.1 0 0 1 12.56 4.92L9.83 5.24L10.26 2.97L13.74 2.97L14.17 5.24A7.1 7.1 0 0 1 17.40 7.39L15.25 5.69L17.16 4.38L19.62 6.84L18.31 8.75A7.1 7.1 0 0 1 19.08 12.56Z"/><circle cx="12" cy="12" r="2.9"/></svg>`, CUP_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="miter" stroke-linecap="butt" aria-hidden="true"><path d="M8.6 2.8c-1.1 1.2 1.1 2.3 0 3.6M12 2.8c-1.1 1.2 1.1 2.3 0 3.6"/><path d="M4 9.2h12.6v5.6c0 2.6-2.1 4.7-4.7 4.7H8.7C6.1 19.5 4 17.4 4 14.8z"/><path d="M16.6 10.8h1.5a2.4 2.4 0 0 1 0 4.8h-1.6"/><path d="M2.6 21.3h15.4"/></svg>`, BOOK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="miter" aria-hidden="true"><path d="M3 6.2v12.6M4.6 5.4v14.2"/><path d="M6.4 4.8c2.2-.3 4 .2 5.6 1.4v13.6c-1.6-1.2-3.4-1.7-5.6-1.4z"/><path d="M12 6.2c2.2-1.3 5-1.6 9-1.4v13.6c-4-.2-6.8.1-9 1.4"/><path d="M14 8.6h4.6M14 11h2.6M14 13.4h1.6"/><path d="M20.2 10.4l-4.9 8.4-.5 1.5 1.2-1 4.9-8.4zM19.4 11.8l1.6.9"/></svg>`;
-const journalBtn = `<button class="iconbtn jbtn" id="jr-btn" data-act="journal" aria-label="Open journal">${BOOK_ICON}</button>`;
-const settingsBtn = `<button class="iconbtn jbtn" id="set-btn" data-act="settings" aria-label="Settings and version">${COG_ICON}</button>`;
 function viewBrew(){
   const p = curPlan(), st = setupById(p.setupId) || curSetup(), g = grinderOf(st), bean = beanById(p.beanId);
   const act = activeStep(), ms = tNow();
@@ -1468,7 +1479,7 @@ function viewBrew(){
   const titles = ['Beans', 'Gear', 'Recipe', 'Brew', 'Taste'];
   const body = i => [stepBeans, stepGear, stepRecipe, stepBrew, stepTaste][i](p, st, g, bean);
   return `${bootNote ? `<div class="err">${esc(bootNote)}</div>` : ''}
-  <div class="fl-head"><div><div class="fl-eyebrow">${T.run ? 'Now brewing' : 'Brew ' + String(S.brews.length + 1).padStart(4, '0')}</div><h1 class="fl-title">Next cup</h1></div><div class="fl-btns">${journalBtn}${settingsBtn}</div></div>
+  <div class="fl-eyebrow pg-eye">${T.run ? 'Now brewing' : 'Brew ' + String(S.brews.length + 1).padStart(4, '0')}</div>
   <div class="fl">${titles.map((t, i) => {
     const on = i === act, done = !on && sum[i];
     return `<section class="fl-step ${on ? 'on' : ''} ${done ? 'done' : ''}">
@@ -1615,7 +1626,7 @@ function journalBody(){
 function viewJournal(){
   const rated = S.brews.filter(b => b.rating);
   const avg = rated.length ? (rated.reduce((a,b) => a + b.rating, 0) / rated.length).toFixed(1) : '–';
-  return `<div class="fl-head"><div><div class="fl-eyebrow">${S.brews.length} brew${S.brews.length === 1 ? '' : 's'} · ${(n => n + ' bean' + (n === 1 ? '' : 's'))(new Set(S.brews.map(b => b.beanId).filter(Boolean)).size)}</div><h1 class="fl-title">Journal</h1></div><div class="fl-btns" aria-hidden="true"><span style="width:44px;height:44px"></span><span style="width:44px;height:44px"></span></div></div>
+  return `<div class="fl-eyebrow pg-eye">${S.brews.length} brew${S.brews.length === 1 ? '' : 's'} · ${(n => n + ' bean' + (n === 1 ? '' : 's'))(new Set(S.brews.map(b => b.beanId).filter(Boolean)).size)}</div>
   <div class="seg seg3" data-on="${jseg}" role="tablist"><span class="seg-thumb" aria-hidden="true"></span><button role="tab" aria-selected="${jseg === 'all'}" data-act="seg" data-id="all">All</button><button role="tab" aria-selected="${jseg === 'top'}" data-act="seg" data-id="top">Top rated</button><button role="tab" aria-selected="${jseg === 'cal'}" data-act="seg" data-id="cal">Calendar</button></div>
   <div class="grp stats"><div><b>${S.brews.length}</b><span>Brews</span></div><div><b>${avg}</b><span>Avg rating</span></div><div><b>${S.beans.length}</b><span>Beans</span></div></div>
   <div id="jbody">${journalBody()}</div>`;
@@ -1645,59 +1656,130 @@ function route(){
   if(J.to === 1) closeJournal();
   render(); window.scrollTo(0,0);
 }
-/* journal layer */
-const J = { p:0, to:0, stop:() => {} };
+/* journal layer: two pages and a pager (v1.23 "Stack · Soft · Pull", from the swipe-tabs prototype) */
+const J = { p:0, to:0, stop:() => {}, moving:false };
 function paintJournalBody(){ const sc = $('#jr-scroll'), y = sc.scrollTop; $('#jrv').innerHTML = loaded ? viewJournal() : ''; sc.scrollTop = y; }
-function jRect(){ const b = $('#jr-btn'); if(!b) return { x: innerWidth - 108, y: 60, w: 44, h: 44 }; const r = b.getBoundingClientRect(); return { x:r.left, y:r.top, w:r.width, h:r.height }; }
-let jFrom = null;
+const jclamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const JMILK = [244,242,236], JOFF = [110,110,110], jmix = (a, b, t) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',')})`;
+const JGAP = 16, JINACTIVE = .7, JARRIVE = .035, JFLING = { damping:.8, response:.34 }, JTAP = { damping:.88, response:.36 };
+let jW = 390, jwN = 0, jwJ = 0;
+function jMeasure(){ jW = innerWidth; const t = document.querySelectorAll('#hdr .tw'); jwN = t[0].offsetWidth; jwJ = t[1].offsetWidth; }
+function jHairline(){ const k = jclamp(J.p, 0, 1); $('#hdr-hl').style.opacity = (1 - k) * jclamp(window.scrollY / 16, 0, 1) + k * jclamp($('#jr-scroll').scrollTop / 16, 0, 1); }
 function paintJournal(){
-  const p = J.p, jr = $('#jr'), R = jFrom || jRect(), W = innerWidth, H = innerHeight, k = Math.max(0, Math.min(1, p));
+  const p = J.p, k = jclamp(p, 0, 1), W = jW, jr = $('#jr'), v = $('#view'), dock = $('#dock');
+  const r = 26 * Math.min(1, k * 5), rj = 26 * Math.min(1, (1 - k) * 5);
   jr.style.visibility = p > .001 ? 'visible' : 'hidden'; jr.setAttribute('aria-hidden', String(p < .5));
-  // bloom: a circle opens from the button's centre and floods the screen
-  const cx = R.x + R.w / 2, cy = R.y + R.h / 2, far = Math.hypot(Math.max(cx, W - cx), Math.max(cy, H - cy));
-  // on the way back the disc shrinks to nothing and dissolves, so it lands without a pop
-  jr.style.clipPath = p >= .999 ? 'none' : `circle(${far * k}px at ${cx}px ${cy}px)`;
-  jr.style.opacity = J.to ? 1 : Math.min(1, k / .18);
-  const kids = $('#jrv').children;
-  for(let i = 0; i < kids.length; i++){ const t = Math.max(0, Math.min(1, (p - .32 - i * .05) / .45)), e = 1 - Math.pow(1 - t, 3);
-    kids[i].style.opacity = i === 0 ? 1 : e; kids[i].style.transform = i === 0 || p >= .999 ? '' : `translateY(${(1 - e) * 16}px)`; }
-  // the two buttons never move: copies sit exactly on the originals, the book turns into a steaming cup
-  const bt = $('#jr-btns'), sb = $('#set-btn'); bt.style.visibility = p > .001 ? 'visible' : 'hidden'; bt.style.left = R.x + 'px'; bt.style.top = R.y + 'px';
-  const x = $('#jr-x'), book = x.firstElementChild, cup = x.lastElementChild;
-  if(!book.innerHTML){ book.innerHTML = BOOK_ICON; cup.innerHTML = CUP_ICON; $('#jr-cog').innerHTML = COG_ICON; }
-  const m = Math.max(0, Math.min(1, (p - .15) / .5)), e = m * m * (3 - 2 * m);
-  book.style.opacity = 1 - e; book.style.transform = `scale(${1 - e * .25}) rotate(${-e * 12}deg)`;
-  cup.style.opacity = e; cup.style.transform = `scale(${.75 + e * .25}) rotate(${(1 - e) * 12}deg)`;
-  const v = $('#view'), b = $('#jr-btn');
-  v.style.transform = k > .001 ? `scale(${1 - k * .04})` : ''; v.style.filter = k > .001 ? `brightness(${1 - k * .55})` : '';
-  [b, sb].forEach(el => { if(el) el.style.visibility = p > .001 ? 'hidden' : ''; });
-  if(p <= .001 && J.to === 0){ jFrom = null; v.style.transformOrigin = ''; }
+  // pages (Soft): Next cup sinks back 92 %, dims and blurs 4 px; Journal slides over from 94 % and sharpens
+  const back = k > .001 ? `translate3d(${-k * W * .18}px,0,0) scale(${1 - .08 * k})` : '';
+  [v, dock].forEach(el => { if(!el) return; el.style.transform = back; el.style.opacity = k > .001 ? 1 - .5 * k : '';
+    el.style.filter = k > .01 ? `blur(${(4 * k).toFixed(2)}px)` : ''; });
+  v.style.transformOrigin = `50% ${window.scrollY + innerHeight / 2}px`;
+  jr.style.transform = p >= .999 && p <= 1.001 ? '' : `translate3d(${(1 - p) * W}px,0,0) scale(${.94 + .06 * k})`;
+  jr.style.borderRadius = `${rj}px 0 0 ${rj}px`;
+  jr.style.filter = 1 - k > .01 ? `blur(${(4 * (1 - k)).toFixed(2)}px)` : '';
+  // titles (Pull): the one you're not on shrinks to 70 %, greys, and stays a touch soft until it lands
+  const tws = document.querySelectorAll('#hdr .tw'), tabs = document.querySelectorAll('#hdr .ttab');
+  const sN = 1 - (1 - JINACTIVE) * k, sJ = JINACTIVE + (1 - JINACTIVE) * k;
+  tws[0].style.transform = `scale(${sN})`; tws[1].style.transform = `translate3d(${-(1 - sN) * jwN}px,0,0) scale(${sJ})`;
+  tabs[0].style.color = jmix(JMILK, JOFF, k); tabs[1].style.color = jmix(JOFF, JMILK, k);
+  const tb = x => { const b = 1.1 * Math.pow(x, 3); return b > .02 ? `blur(${b.toFixed(2)}px)` : 'none'; };
+  tabs[0].style.filter = tb(k); tabs[1].style.filter = tb(1 - k);
+  const x1 = JINACTIVE * jwN + JGAP;
+  $('#hdr .ind').style.transform = `translate3d(${x1 * k}px,0,0) scaleX(${jwN + (jwJ - jwN) * k})`;
+  jHairline();
 }
-function jGo(to, v = 0){
-  J.to = to; J.stop();
-  if(reduceMotion()){ J.p = to; paintJournal(); return; }
-  // critically damped (K 55): slow, smooth, no bounce at the end
-  let x = J.p, vel = v, last = performance.now(), raf; const K = to ? 85 : 110, C = 2 * Math.sqrt(K);
+function jSel(){ document.querySelectorAll('#hdr .ttab').forEach((t, i) => { t.setAttribute('aria-selected', String(i === J.to)); t.tabIndex = i === J.to ? 0 : -1; });
+  $('#view').inert = J.to === 1 && !J.moving; }
+function jClunk(){ const i = $('#hdr .ind'); i.classList.remove('clunk'); void i.offsetWidth; i.classList.add('clunk'); }
+// spring from the live value with the finger's velocity; a firm click as the page lands
+function jGo(to, opts = JTAP, fb = true){
+  J.stop(); const changed = to !== J.to || Math.abs(J.p - to) > JARRIVE; J.to = to; J.moving = true; jSel();
+  if(reduceMotion()){ J.p = to; J.moving = false; paintJournal(); jSel(); return; }
+  const kk = Math.pow(2 * Math.PI / opts.response, 2), c = 4 * Math.PI * opts.damping / opts.response;
+  let x = J.p, vel = opts.velocity || 0, last = performance.now(), raf, landed = !changed;
   const tick = now => { const dt = Math.min(.032, (now - last) / 1000); last = now;
-    vel += (-K * (x - to) - C * vel) * dt; x += vel * dt; J.p = x; paintJournal();
-    if(Math.abs(x - to) < .004 && Math.abs(vel) < .05){ J.p = to; paintJournal(); return; }
+    vel += (-kk * (x - to) - c * vel) * dt; x += vel * dt; J.p = x; paintJournal();
+    if(!landed && Math.abs(x - to) <= JARRIVE){ landed = true; jClunk(); if(fb) SFX.snap(); }
+    if(Math.abs(x - to) < .0006 && Math.abs(vel) < .01){ J.p = to; J.moving = false; paintJournal(); jSel(); return; }
     raf = requestAnimationFrame(tick); };
-  raf = requestAnimationFrame(tick); J.stop = () => cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(tick); J.stop = () => { cancelAnimationFrame(raf); J.moving = false; };
 }
-function openJournal(){
-  calAnim = true;
-  if(!jFrom){ jFrom = jRect(); $('#view').style.transformOrigin = `${jFrom.x + jFrom.w / 2}px ${jFrom.y + window.scrollY}px`; }
-  paintJournalBody(); $('#jr-scroll').scrollTop = 0; J.to = 1; paintJournal(); jGo(1);
-  if(location.hash !== '#journal') history.pushState(null, '', '#journal');
-}
-function closeJournal(){ jGo(0); if(location.hash === '#journal') history.replaceState(null, '', '#brew'); }
-(() => { // pull the top of the journal down to fold it back into the button
-  const g = $('#jr-grab'); let y0 = null, p0 = 0, ly = 0, lt = 0, vy = 0;
-  g.addEventListener('pointerdown', e => { y0 = e.clientY; p0 = J.p; ly = e.clientY; lt = performance.now(); vy = 0; J.stop(); g.setPointerCapture(e.pointerId); });
-  g.addEventListener('pointermove', e => { if(y0 === null) return; const n = performance.now(); vy = (e.clientY - ly) / Math.max(1, n - lt) * 1000; ly = e.clientY; lt = n;
-    J.p = Math.min(1, p0 - Math.max(0, e.clientY - y0) / (innerHeight * .7)); paintJournal(); });
-  const up = () => { if(y0 === null) return; y0 = null; if(vy > 300 || J.p < .7) closeJournal(); else jGo(1, -vy / (innerHeight * .7)); };
-  g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
+function jHash(to){ if(to === 1 && location.hash !== '#journal') history.pushState(null, '', '#journal');
+  if(to === 0 && location.hash === '#journal') history.replaceState(null, '', '#brew'); }
+function openJournal(opts, fb){ if(J.to !== 1 || J.p < .5){ calAnim = true; paintJournalBody(); $('#jr-scroll').scrollTop = 0; } jGo(1, opts, fb); jHash(1); }
+function closeJournal(opts, fb){ jGo(0, opts, fb); jHash(0); }
+(() => {
+  $('#set-btn').innerHTML = COG_ICON;
+  const tabs = document.querySelectorAll('#hdr .ttab'), tws = document.querySelectorAll('#hdr .tw');
+  let dragged = false;
+  const pick = i => {
+    if(i === J.to && !J.moving){ (i ? $('#jr-scroll') : window).scrollTo({ top:0, behavior: reduceMotion() ? 'auto' : 'smooth' }); return; }
+    if(i === J.to) return;
+    SFX.tap(); i ? openJournal(JTAP, false) : closeJournal(JTAP, false);
+  };
+  tabs.forEach((t, i) => t.addEventListener('click', () => pick(i)));
+  if(/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) tws.forEach((w, i) => {
+    // iOS only plays a haptic for a real finger on a native switch, so each title has one on top
+    const sw = document.createElement('input'); sw.type = 'checkbox'; sw.className = 'hx'; sw.setAttribute('switch', ''); sw.setAttribute('aria-hidden', 'true'); sw.tabIndex = -1; w.appendChild(sw);
+    sw.addEventListener('change', () => { sw.checked = false; if(dragged) return; pick(i); });
+    sw.addEventListener('pointerdown', () => w.classList.add('pressed'));
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => sw.addEventListener(ev, () => w.classList.remove('pressed')));
+  });
+  addEventListener('scroll', jHairline, { passive:true }); $('#jr-scroll').addEventListener('scroll', jHairline, { passive:true });
+  const onSize = () => { jMeasure(); paintJournal(); };
+  addEventListener('resize', onSize); if(document.fonts && document.fonts.ready) document.fonts.ready.then(onSize);
+  /* finger: axis-locked after 8 px, 1:1 with the grab, rubber band at the ends, momentum picks the page,
+     the spring takes over the finger's speed. Light Ode ticks every 1/8 of the way, a firm one at halfway. */
+  const project = (v, rate = .998) => (v / 1000) * rate / (1 - rate), rband = (x, d, c = .55) => (x * d * c) / (d + c * x);
+  const N = 8, E = .06; let g = null, det = [], lastTick = 0, edge = false;
+  const detents = (ts, raw) => {
+    const x = jclamp(J.p, 0, 1) * N; let hit = 0, mid = false;
+    for(let j = 1; j < N; j++){
+      if(!det[j - 1] && x >= j + E){ det[j - 1] = true; hit = j; if(j === N / 2) mid = true; }
+      else if(det[j - 1] && x <= j - E){ det[j - 1] = false; hit = j; if(j === N / 2) mid = true; }
+    }
+    if(hit && ts - lastTick >= 45){ lastTick = ts; if(mid) SFX.snap(); else SFX.tick(jclamp(J.p, 0, 1)); }
+    const out = raw < 0 || raw > 1; if(out && !edge){ edge = true; SFX.end(); } else if(!out) edge = false;
+  };
+  const skip = el => el.closest('#sheet,#scrim,input,textarea,select,.dk,.dkrow,[data-noswipe]') && !el.closest('.hx');
+  addEventListener('pointerdown', e => {
+    if(e.button > 0 || !loaded || document.body.classList.contains('sheet-up') || skip(e.target)) return;
+    dragged = false; const wasMoving = J.moving; if(J.moving) J.stop();
+    g = { id:e.pointerId, x0:e.clientX, y0:e.clientY, p0:J.p, lock:null, hist:[{ x:e.clientX, t:e.timeStamp }], wasMoving };
+  }, true);
+  addEventListener('pointermove', e => {
+    if(!g || e.pointerId !== g.id) return;
+    const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+    if(!g.lock){ if(Math.hypot(dx, dy) < 8) return;
+      if(Math.abs(dx) > Math.abs(dy)){ g.lock = 'x'; dragged = true; try{ e.target.setPointerCapture(e.pointerId); }catch(_){}
+        if(J.p < .5 && J.to === 0){ calAnim = true; paintJournalBody(); }
+        J.moving = true; $('#view').inert = false;
+        const x0 = jclamp(J.p, 0, 1) * N; det = Array.from({ length:N - 1 }, (_, i) => x0 >= i + 1); edge = false; lastTick = e.timeStamp; }
+      else { g.lock = 'y'; return; } }
+    if(g.lock !== 'x') return;
+    g.hist.push({ x:e.clientX, t:e.timeStamp }); while(g.hist.length > 2 && e.timeStamp - g.hist[0].t > 100) g.hist.shift();
+    const raw = g.p0 - dx / jW;
+    J.p = raw < 0 ? -rband(-raw * jW, jW) / jW : raw > 1 ? 1 + rband((raw - 1) * jW, jW) / jW : raw;
+    paintJournal(); detents(e.timeStamp, raw); e.preventDefault();
+  }, { capture:true, passive:false });
+  const release = (e, cancelled) => {
+    if(!g || e.pointerId !== g.id) return; const was = g; g = null;
+    if(was.lock === 'x'){
+      const h = was.hist, a = h[0], b = h[h.length - 1];
+      let v = h.length > 1 ? (b.x - a.x) / Math.max(1, b.t - a.t) * 1000 : 0;
+      if(cancelled || e.timeStamp - b.t > 80) v = 0; v = jclamp(v, -4000, 4000);
+      const to = jclamp(Math.round(J.p - project(v) / jW), 0, 1), opts = { ...JFLING, damping: Math.abs(v) > 300 ? JFLING.damping : 1, velocity: -v / jW };
+      to ? openJournal(opts) : closeJournal(opts);
+      // a swipe isn't a tap: swallow the click that follows it
+      const eat = ev => { ev.stopPropagation(); ev.preventDefault(); }; addEventListener('click', eat, { capture:true, once:true });
+      setTimeout(() => { removeEventListener('click', eat, { capture:true }); dragged = false; }, 60);
+    } else if(was.wasMoving) jGo(J.to);
+  };
+  addEventListener('pointerup', e => release(e, false), true);
+  addEventListener('pointercancel', e => release(e, true), true);
+  addEventListener('keydown', e => { if(e.target.closest && e.target.closest('input,textarea,select') || document.body.classList.contains('sheet-up')) return;
+    if(e.key === 'ArrowRight' && J.to === 0) pick(1); else if(e.key === 'ArrowLeft' && J.to === 1) pick(0); });
+  jMeasure(); jSel(); paintJournal();
 })();
 
 window.addEventListener('hashchange', route);

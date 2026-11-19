@@ -107,7 +107,7 @@ with sync_playwright() as p:
 
     # 2. guided brew page: opens on the Brew step, hero timer, skip, stop → taste → log
     check('opens on brew step', 'Brew' in pg.inner_text('.fl-step.on .fl-sh'), pg.inner_text('.fl-step.on .fl-sh'))
-    check('beans and gear folded in', pg.locator('.fl-step.done').count() == 3 and pg.locator('#jr-btn').count() == 1 and not pg.locator('nav').is_visible())
+    check('beans and gear folded in', pg.locator('.fl-step.done').count() == 3 and pg.locator('#tab1').count() == 1 and not pg.locator('nav').is_visible())
     pg.evaluate("window.__snd=[]; ['tick','tap','second','chime','start','stop','snap'].forEach(k => { const f = SFX[k]; SFX[k] = (...a) => { window.__snd.push(k); return f(...a); }; })")
     pg.click('[data-act=timerToggle]'); pg.evaluate('T.start = Date.now() - 62000'); pg.wait_for_timeout(500)
     pg.wait_for_timeout(200)
@@ -183,19 +183,21 @@ with sync_playwright() as p:
     pg.screenshot(path='/tmp/drawdown-detail.png')
     pg.evaluate("AI = null; void save({ ...brewById('brew_a'), advice:null, notes:'Bright' }); closeSheet()"); pg.wait_for_timeout(500)
 
-    # 5c. journal reveal: button grows into the journal, × and pull-down fold it back
+    # 5c. two pages: tap the Journal title, swipe back, flick over; the page you're not on is small and soft
     pg.goto(URL + '#brew'); pg.wait_for_timeout(700)
-    pg.click('#jr-btn'); pg.wait_for_timeout(150)
-    mid = pg.evaluate("getComputedStyle(document.getElementById('jr')).clipPath")
-    check('reveal blooms from the button', mid.startswith('circle'), mid)
-    pg.wait_for_timeout(1800)
-    check('journal opens full screen', pg.evaluate("J.p") == 1 and pg.locator('#jrv .seg').is_visible() and location_hash(pg) == '#journal')
-    pg.click('#jr-x'); pg.wait_for_timeout(1800)
-    check('journal folds back', pg.evaluate("J.p") == 0 and not pg.locator('#jr').is_visible())
-    pg.click('#jr-btn'); pg.wait_for_timeout(1800)
-    g = pg.locator('#jr-grab').bounding_box(); x = g['x'] + g['width'] / 2; y = g['y'] + 20
-    pg.mouse.move(x, y); pg.mouse.down(); pg.mouse.move(x, y + 200, steps=5); pg.mouse.move(x, y + 520, steps=5); pg.mouse.up(); pg.wait_for_timeout(1800)
-    check('pull down closes journal', pg.evaluate("J.p") == 0)
+    pg.click('#tab1'); pg.wait_for_timeout(120)
+    mid = pg.evaluate("[getComputedStyle(document.getElementById('jr')).filter, getComputedStyle(document.getElementById('view')).filter]")
+    check('journal slides in blurred, brew sinks blurred', all('blur' in m for m in mid), str(mid))
+    pg.wait_for_timeout(1500)
+    check('journal opens full screen', pg.evaluate("J.p") == 1 and pg.locator('#jrv .seg').is_visible() and location_hash(pg) == '#journal'
+          and pg.evaluate("getComputedStyle(document.getElementById('jr')).filter") == 'none')
+    check('inactive title is smaller and soft', 'blur' in pg.evaluate("getComputedStyle(document.getElementById('tab0')).filter"))
+    pg.mouse.move(80, 500); pg.mouse.down(); pg.mouse.move(200, 500, steps=6); pg.mouse.move(330, 500, steps=6); pg.mouse.up(); pg.wait_for_timeout(1500)
+    check('swipe right goes back to brewing', pg.evaluate("J.p") == 0 and not pg.locator('#jr').is_visible() and location_hash(pg) != '#journal')
+    pg.mouse.move(320, 500); pg.mouse.down(); pg.mouse.move(290, 500, steps=3); pg.mouse.move(230, 500, steps=3); pg.mouse.up(); pg.wait_for_timeout(1500)
+    check('flick left opens journal', pg.evaluate("J.p") == 1)
+    pg.click('#tab0'); pg.wait_for_timeout(1500)
+    check('tap Next cup goes back', pg.evaluate("J.p") == 0)
 
     # 5a. bean palettes from real bag photos + journal calendar
     import base64, io
