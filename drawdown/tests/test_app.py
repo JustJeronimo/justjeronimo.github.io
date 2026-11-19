@@ -198,6 +198,12 @@ with sync_playwright() as p:
     check('flick left opens journal', pg.evaluate("J.p") == 1)
     pg.click('#tab0'); pg.wait_for_timeout(1500)
     check('tap Next cup goes back', pg.evaluate("J.p") == 0)
+    pg.click('#tab1'); pg.wait_for_timeout(1500)
+    pg.evaluate("window.__pp=[]; (function rec(){ window.__pp.push(J.p); if(window.__pp.length < 90) requestAnimationFrame(rec); })()")
+    pg.mouse.move(60, 500); pg.mouse.down(); pg.mouse.move(150, 500, steps=4); pg.mouse.move(300, 500, steps=4); pg.mouse.up(); pg.wait_for_timeout(1600)
+    pp = pg.evaluate("window.__pp"); i = max(range(len(pp)), key=lambda j: -pp[j]) if pp else 0
+    jumps = [round(pp[j + 1] - pp[j], 3) for j in range(len(pp) - 1) if pp[j + 1] - pp[j] > .02]
+    check('swipe back never jumps forward', not jumps and pg.evaluate("J.p") == 0, str(jumps))
 
     # 5a. bean palettes from real bag photos + journal calendar
     import base64, io
@@ -349,6 +355,11 @@ with sync_playwright() as p:
     pg5.evaluate('closeSheet()'); pg5.wait_for_timeout(500)
     pg5.evaluate("save({...brewById('brew_a'), notes:'Synced'})"); pg5.wait_for_timeout(400)
     check('account: edits reach the server', server['brew_a']['notes'] == 'Synced')
+    pg5.evaluate("remove('bean', 'bean_a')"); pg5.wait_for_timeout(400); pg5.reload(); pg5.wait_for_timeout(1500)
+    check('account: a deleted bean stays deleted after reopening', 'bean_a' not in server and pg5.evaluate("S.beans.some(b => b.id === 'bean_a')") is False, str(sorted(server)))
+    # an older version (no record yet) left guest docs behind: they must not come back either
+    pg5.evaluate("localStorage.removeItem('drawdown-moved')"); pg5.reload(); pg5.wait_for_timeout(1500)
+    check('account: upgrade does not resurrect deleted docs', 'bean_a' not in server, str(sorted(server)))
     pg5.goto(URL + '#beans'); pg5.wait_for_timeout(1200)
     pg5.set_input_files('#pick', img); pg5.wait_for_timeout(1000)
     pg5.click('[data-act=readLabel]'); pg5.wait_for_timeout(1200)

@@ -713,7 +713,7 @@ const supa = {
     try {
       const r = await fetch(`${SUPA.url}/auth/v1/token?grant_type=pkce`, { method:'POST', headers:{ apikey: SUPA.key, 'Content-Type':'application/json' }, body: JSON.stringify({ auth_code: code, code_verifier: verifier }) });
       if(!r.ok) throw 0;
-      this.keep(this.shape(await r.json()));
+      this.keep(this.shape(await r.json())); this.fresh = true;
     } catch(e){ this.note = 'Sign-in didn’t finish. Try again.'; }
   },
   shape(j){ return { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || Math.floor(Date.now() / 1000) + (j.expires_in || 3600), user: { id: j.user?.id, email: j.user?.email } }; },
@@ -747,7 +747,13 @@ async function supaStore(){
   let rows = await load();
   /* first sign-in on this device: bring the guest brews along (anything the account doesn't have yet) */
   let local = {}; try { local = JSON.parse(localStorage.getItem('brewlog-v1') || '{}'); } catch(e){}
-  const have = new Set(rows.map(r => r.id)), fresh = Object.values(local).filter(d => d && d.id && d.kind && !have.has(d.id) && !(d.kind === 'prefs' && have.has('prefs')));
+  /* remember what this device already handed over, so something deleted later never gets uploaded again.
+     Before v1.24 every launch re-uploaded the guest docs (that's how deleted beans came back): if the account has
+     data, there's no record yet and this isn't a fresh sign-in, everything local missing from it was deleted. */
+  const MOVED = 'drawdown-moved'; let moved = null; try { moved = JSON.parse(localStorage.getItem(MOVED) || 'null'); } catch(e){}
+  if(!moved) moved = rows.length && !supa.fresh ? Object.keys(local) : [];   // just signed in on this device: bring the guest docs along
+  const done = new Set(moved);
+  const have = new Set(rows.map(r => r.id)), fresh = Object.values(local).filter(d => d && d.id && d.kind && !done.has(d.id) && !have.has(d.id) && !(d.kind === 'prefs' && have.has('prefs')));
   if(fresh.length){
     for(let i = 0; i < fresh.length; i += 200){
       await supa.call('/rest/v1/docs?on_conflict=user_id,id', { method:'POST', headers:{ Prefer:'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(fresh.slice(i, i + 200).map(o => ({ id: o.id, kind: o.kind, data: o }))) });
@@ -755,6 +761,7 @@ async function supaStore(){
     supa.moved = fresh.filter(d => d.kind === 'brew' || d.kind === 'bean').length;
     rows = await load();
   }
+  try { localStorage.setItem(MOVED, JSON.stringify([...new Set([...done, ...Object.keys(local)])])); } catch(e){}
   return {
     mode:'supa',
     start(){
@@ -867,7 +874,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.23 · 19 Nov 2026';
+const APP_VERSION = '1.24 · 19 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -1249,7 +1256,7 @@ function wireDial(dk, r){
   const springTo = target => { // stiffness 300, damping 25, mass .8 (DialKit's click spring)
     stopSpring(); if(reduceMotion()){ pct = target; return paint(); }
     let x = pct, v = 0, last = performance.now();
-    const tick = now => { const dt = Math.min(.032, (now - last) / 1000); last = now;
+    const tick = now => { const dt = Math.max(0, Math.min(.032, (now - last) / 1000)); last = Math.max(last, now);
       const a = (-300 * (x - target) - 25 * v) / .8; v += a * dt; x += v * dt; pct = x; paint();
       if(Math.abs(x - target) < .05 && Math.abs(v) < .5){ pct = target; paint(); raf = 0; return; }
       raf = requestAnimationFrame(tick); };
@@ -1675,7 +1682,7 @@ function paintJournal(){
     el.style.filter = k > .01 ? `blur(${(4 * k).toFixed(2)}px)` : ''; });
   v.style.transformOrigin = `50% ${window.scrollY + innerHeight / 2}px`;
   jr.style.transform = p >= .999 && p <= 1.001 ? '' : `translate3d(${(1 - p) * W}px,0,0) scale(${.94 + .06 * k})`;
-  jr.style.borderRadius = `${rj}px 0 0 ${rj}px`;
+  jr.style.borderRadius = `${rj}px 0 0 ${rj}px`; jr.style.boxShadow = `-24px 0 48px rgba(0,0,0,${(.55 * Math.min(1, k * 3)).toFixed(3)})`;
   jr.style.filter = 1 - k > .01 ? `blur(${(4 * (1 - k)).toFixed(2)}px)` : '';
   // titles (Pull): the one you're not on shrinks to 70 %, greys, and stays a touch soft until it lands
   const tws = document.querySelectorAll('#hdr .tw'), tabs = document.querySelectorAll('#hdr .ttab');
@@ -1697,7 +1704,7 @@ function jGo(to, opts = JTAP, fb = true){
   if(reduceMotion()){ J.p = to; J.moving = false; paintJournal(); jSel(); return; }
   const kk = Math.pow(2 * Math.PI / opts.response, 2), c = 4 * Math.PI * opts.damping / opts.response;
   let x = J.p, vel = opts.velocity || 0, last = performance.now(), raf, landed = !changed;
-  const tick = now => { const dt = Math.min(.032, (now - last) / 1000); last = now;
+  const tick = now => { const dt = Math.max(0, Math.min(.032, (now - last) / 1000)); last = Math.max(last, now);
     vel += (-kk * (x - to) - c * vel) * dt; x += vel * dt; J.p = x; paintJournal();
     if(!landed && Math.abs(x - to) <= JARRIVE){ landed = true; jClunk(); if(fb) SFX.snap(); }
     if(Math.abs(x - to) < .0006 && Math.abs(vel) < .01){ J.p = to; J.moving = false; paintJournal(); jSel(); return; }
