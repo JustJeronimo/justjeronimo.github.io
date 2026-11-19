@@ -464,12 +464,13 @@ body.sheet-up #dock{opacity:0;pointer-events:none}
 .cal-d.has .cal-n{background:#000;padding:2px 3px;left:0;top:0}
 .cal-x{position:absolute;right:0;bottom:0;background:#000;font:10px var(--mono);padding:2px 3px;line-height:1}
 .cal-d.today{box-shadow:inset 0 0 0 1px var(--sec)}
-.cal-d.sel{box-shadow:inset 0 0 0 2px var(--label)}
+.cal-d.sel{box-shadow:inset 0 0 0 2px var(--label);animation:calsel .32s var(--spring-snappy)}
+@keyframes calsel{from{transform:scale(.9)}to{transform:none}}
 .cal-d.has{transition:transform .1s ease-out}
 .cal-d.has:active{transform:scale(.94)}
-.cal-grid .cal-d.has{animation:calin .45s var(--spring-soft) both}
+.cal-grid.anim .cal-d.has{animation:calin .45s var(--spring-soft) both}
 @keyframes calin{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.cal-grid .cal-d.has{animation:flfade .2s ease-out both}}
+@media (prefers-reduced-motion:reduce){.cal-grid.anim .cal-d.has{animation:flfade .2s ease-out both}}
 /* ---------- journal reveal (v1.20): the journal button grows into a full-screen layer ----------
    clip-path inset from the button's square to the screen, corners rounding up mid-flight and settling
    square; critically damped spring (no overshoot), content eases in after a third of the way. */
@@ -570,7 +571,8 @@ main{padding-bottom:calc(env(safe-area-inset-bottom) + 40px)}
 <div id="dock" class="away"></div>
 
 <div id="jr" aria-hidden="true" role="dialog" aria-label="Journal"><div id="jr-scroll"><main id="jrv"></main></div>
-  <div id="jr-grab" aria-hidden="true"></div><div id="jr-btns"><button class="iconbtn jbtn" id="jr-x" data-act="journalClose" aria-label="Back to brewing"><span class="i-book"></span><span class="i-cup"></span></button><button class="iconbtn jbtn" id="jr-cog" data-act="settings" aria-label="Settings and version"></button></div></div>
+  <div id="jr-grab" aria-hidden="true"></div></div>
+<div id="jr-btns"><button class="iconbtn jbtn" id="jr-x" data-act="journalClose" aria-label="Back to brewing"><span class="i-book"></span><span class="i-cup"></span></button><button class="iconbtn jbtn" id="jr-cog" data-act="settings" aria-label="Settings and version"></button></div>
 
 <input type="file" id="cam" accept="image/*" capture="environment" hidden>
 <input type="file" id="pick" accept="image/*" hidden>
@@ -852,7 +854,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.21 · 19 Nov 2026';
+const APP_VERSION = '1.22 · 19 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -1563,8 +1565,10 @@ async function backfillPalettes(){ if(palDone) return; palDone = true; for(const
 
 /* ---------- journal calendar: each brew day filled with the palette of the beans you brewed ---------- */
 const dayKey = d => { const t = new Date(d); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; };
+let calAnim = true;
 let calMonth = (() => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), 1); })(), calSel = null;
 function calendarBody(){
+  queueMicrotask(() => { calAnim = false; });
   const y = calMonth.getFullYear(), m = calMonth.getMonth(), days = new Date(y, m + 1, 0).getDate(), off = (new Date(y, m, 1).getDay() + 6) % 7, today = dayKey(new Date());
   const byDay = {}; S.brews.forEach(b => { if(!b.date) return; const k = dayKey(b.date); (byDay[k] = byDay[k] || []).push(b); });
   const inMonth = S.brews.filter(b => b.date && new Date(b.date).getFullYear() === y && new Date(b.date).getMonth() === m);
@@ -1585,7 +1589,7 @@ function calendarBody(){
   return `<div class="cal">
       <div class="cal-head"><button class="iconbtn" data-act="calMove" data-id="-1" aria-label="Previous month">‹</button><span class="cal-m">${calMonth.toLocaleString('en-GB', { month:'long', year:'numeric' })}</span><button class="iconbtn" data-act="calMove" data-id="1" aria-label="Next month">›</button></div>
       <div class="cal-dow">${['M','T','W','T','F','S','S'].map(x => `<span>${x}</span>`).join('')}</div>
-      <div class="cal-grid">${cells.join('')}</div>
+      <div class="cal-grid${calAnim ? ' anim' : ''}">${cells.join('')}</div>
       <p class="foot">${inMonth.length} brew${inMonth.length === 1 ? '' : 's'} this month · ${Object.keys(tried).filter(Boolean).length} bean${Object.keys(tried).filter(Boolean).length === 1 ? '' : 's'} · ${everTried} tried in total</p>
     </div>
     ${sel ? `<div class="sec-h"><span>${new Date(calSel).toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' })}</span><button class="link" data-act="calDay" data-id="">Clear</button></div><div class="grp">${sel.map(b => rowBrew(b)).join('')}</div>` : ''}
@@ -1651,7 +1655,9 @@ function paintJournal(){
   jr.style.visibility = p > .001 ? 'visible' : 'hidden'; jr.setAttribute('aria-hidden', String(p < .5));
   // bloom: a circle opens from the button's centre and floods the screen
   const cx = R.x + R.w / 2, cy = R.y + R.h / 2, far = Math.hypot(Math.max(cx, W - cx), Math.max(cy, H - cy));
-  jr.style.clipPath = p >= .999 ? 'none' : `circle(${22 + (far - 22) * k}px at ${cx}px ${cy}px)`;
+  // on the way back the disc shrinks to nothing and dissolves, so it lands without a pop
+  jr.style.clipPath = p >= .999 ? 'none' : `circle(${far * k}px at ${cx}px ${cy}px)`;
+  jr.style.opacity = J.to ? 1 : Math.min(1, k / .18);
   const kids = $('#jrv').children;
   for(let i = 0; i < kids.length; i++){ const t = Math.max(0, Math.min(1, (p - .32 - i * .05) / .45)), e = 1 - Math.pow(1 - t, 3);
     kids[i].style.opacity = i === 0 ? 1 : e; kids[i].style.transform = i === 0 || p >= .999 ? '' : `translateY(${(1 - e) * 16}px)`; }
@@ -1671,14 +1677,15 @@ function jGo(to, v = 0){
   J.to = to; J.stop();
   if(reduceMotion()){ J.p = to; paintJournal(); return; }
   // critically damped (K 55): slow, smooth, no bounce at the end
-  let x = J.p, vel = v, last = performance.now(), raf; const K = 55, C = 2 * Math.sqrt(K);
+  let x = J.p, vel = v, last = performance.now(), raf; const K = to ? 85 : 110, C = 2 * Math.sqrt(K);
   const tick = now => { const dt = Math.min(.032, (now - last) / 1000); last = now;
     vel += (-K * (x - to) - C * vel) * dt; x += vel * dt; J.p = x; paintJournal();
-    if(Math.abs(x - to) < .0015 && Math.abs(vel) < .02){ J.p = to; paintJournal(); return; }
+    if(Math.abs(x - to) < .004 && Math.abs(vel) < .05){ J.p = to; paintJournal(); return; }
     raf = requestAnimationFrame(tick); };
   raf = requestAnimationFrame(tick); J.stop = () => cancelAnimationFrame(raf);
 }
 function openJournal(){
+  calAnim = true;
   if(!jFrom){ jFrom = jRect(); $('#view').style.transformOrigin = `${jFrom.x + jFrom.w / 2}px ${jFrom.y + window.scrollY}px`; }
   paintJournalBody(); $('#jr-scroll').scrollTop = 0; J.to = 1; paintJournal(); jGo(1);
   if(location.hash !== '#journal') history.pushState(null, '', '#journal');
@@ -2426,11 +2433,11 @@ const ACT = {
   editPlan(){ openPlanForm(); },
   clearPlan(){ save({ ...S.prefs, plan:null }); },
   seg(id){
-    if(jseg === id) return; jseg = id;
+    if(jseg === id) return; jseg = id; calAnim = true;
     const s = $('.seg'); if(!s) return render();
     s.dataset.on = id; s.querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.id === id)));
     const jb = $('#jbody'); jb.innerHTML = journalBody(); restartAnim(jb, 'swap'); },
-  calMove(d){ calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + +d, 1); calSel = null; const jb = $('#jbody'); if(jb) jb.innerHTML = journalBody(); },
+  calMove(d){ calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + +d, 1); calSel = null; calAnim = true; const jb = $('#jbody'); if(jb) jb.innerHTML = journalBody(); },
   calDay(k){ calSel = k && calSel !== k ? k : null; const jb = $('#jbody'); if(jb) jb.innerHTML = journalBody(); },
   brew(id){ openBrewDetail(id); },
   editBrew(id){ const b = brewById(id); if(b) openBrewForm(b, id); },

@@ -221,6 +221,7 @@ with sync_playwright() as p:
     pg.screenshot(path='/tmp/drawdown-calendar.png', full_page=True)
     pg.click('.cal-d.has >> nth=0'); pg.wait_for_timeout(300)
     check('tap a day lists its brews', pg.locator('#jbody .cell[data-act=brew]').count() == 2)
+    check('tapping a day only moves that day', not pg.evaluate("document.querySelector('.cal-grid').classList.contains('anim')") and pg.locator('.cal-d.sel').count() == 1)
     pg.click('[data-act=calMove][data-id="-1"]'); pg.wait_for_timeout(200)
     check('month navigation', 'October' in pg.inner_text('.cal-m'))
 
