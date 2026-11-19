@@ -169,6 +169,18 @@ with sync_playwright() as p:
     pg.mouse.move(x, y); pg.mouse.down(); pg.mouse.move(x, y + 120, steps=4); pg.mouse.move(x, y + 300, steps=4); pg.mouse.up(); pg.wait_for_timeout(700)
     check('drag closes sheet', pg.evaluate("document.getElementById('sheet').hidden"))
 
+    # 4b. brew sheet: long content scrolls instead of being squashed; a failing AI still gives a tip
+    pg.evaluate("save({ ...brewById('brew_a'), notes: 'Not sure yet. When it cools down more it gets sweeter but there is a dry finish that lingers. '.repeat(4) })"); pg.wait_for_timeout(200)
+    pg.evaluate("openBrewDetail('brew_a')"); pg.wait_for_timeout(700)
+    sq = pg.evaluate("[...document.querySelectorAll('#sheet-body > *')].filter(el => el.scrollHeight > el.clientHeight + 2).map(el => el.className)")
+    check('sheet blocks never squashed', not sq, str(sq))
+    check('sheet scrolls', pg.evaluate("(b => b.scrollHeight > b.clientHeight)(document.getElementById('sheet-body'))"))
+    pg.evaluate("AI = Object.assign(async () => { throw { code:'ai_failed', reason:'credit' }; }, { json: async () => { throw { code:'ai_failed', reason:'credit' }; } }); 0")
+    pg.evaluate("getAdvice('brew_a').then(() => 1, e => 'ERR ' + JSON.stringify(e))"); pg.wait_for_timeout(800)
+    check('AI failure falls back to a tip', pg.evaluate("!!brewById('brew_a').advice?.next && /out of credit/.test(brewById('brew_a').advice.fallback || '')"), str(pg.evaluate("brewById('brew_a').advice")))
+    pg.screenshot(path='/tmp/drawdown-detail.png')
+    pg.evaluate("AI = null; void save({ ...brewById('brew_a'), advice:null, notes:'Bright' }); closeSheet()"); pg.wait_for_timeout(500)
+
     # 5a. bean palettes from real bag photos + journal calendar
     import base64, io
     from PIL import Image as _I

@@ -4,7 +4,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4';
 
 const ORIGINS = ['https://justjeronimo.github.io'];
-const MODELS = (Deno.env.get('ANTHROPIC_MODELS') || 'claude-haiku-5-5,claude-sonnet-5-5').split(',').map(s => s.trim()).filter(Boolean);
+const MODELS = (Deno.env.get('ANTHROPIC_MODELS') || 'claude-haiku-5-5,claude-sonnet-5-5,claude-haiku-4-5').split(',').map(s => s.trim()).filter(Boolean);
 const MAX_PROMPT = 8000, MAX_IMAGE = 2_000_000; // characters of base64
 
 function cors(origin: string) {
@@ -48,6 +48,9 @@ Deno.serve(async (req) => {
     ...images.map(data => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } })),
     { type: 'text', text: prompt },
   ];
+  // Each model is tried in turn. Failures are logged (status + Anthropic's error type/message, never the key)
+  // and summed up into one reason the app can show: credit · auth · rate · busy · model · network.
+  const why: string[] = [];
   for (const model of MODELS) {
     try {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -56,12 +59,23 @@ Deno.serve(async (req) => {
         headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
         body: JSON.stringify({ model, max_tokens: 900, messages: [{ role: 'user', content }] }),
       });
-      if (r.status === 404 || r.status === 400) continue; // model name not available: try the next
-      if (!r.ok) throw new Error('upstream ' + r.status);
-      const j = await r.json();
-      const text = (j.content || []).filter((c: { type: string }) => c.type === 'text').map((c: { text: string }) => c.text).join('');
-      return out(200, { text, model });
-    } catch (_) { /* try the next model */ }
+      if (r.ok) {
+        const j = await r.json();
+        const text = (j.content || []).filter((c: { type: string }) => c.type === 'text').map((c: { text: string }) => c.text).join('');
+        return out(200, { text, model });
+      }
+      let err = { type: '', message: '' };
+      try { err = (await r.json()).error || err; } catch { /* not json */ }
+      console.error(`ask: ${model} → ${r.status} ${err.type}: ${err.message}`);
+      const m = (err.message || '').toLowerCase();
+      why.push(m.includes('credit') || m.includes('billing') ? 'credit' : r.status === 401 || r.status === 403 ? 'auth'
+        : r.status === 429 ? 'rate' : r.status === 529 || r.status >= 500 ? 'busy' : r.status === 404 || m.includes('model') ? 'model' : 'bad_request');
+      if (why[why.length - 1] === 'credit' || why[why.length - 1] === 'auth') break; // same key, same answer for every model
+    } catch (e) {
+      console.error(`ask: ${model} → network ${e instanceof Error ? e.message : e}`);
+      why.push('network');
+    }
   }
-  return out(502, { error: 'upstream' });
+  const reason = ['credit', 'auth', 'rate', 'busy', 'network', 'model', 'bad_request'].find(r => why.includes(r)) || 'upstream';
+  return out(502, { error: 'upstream', reason });
 });

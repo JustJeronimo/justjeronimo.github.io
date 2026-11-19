@@ -149,6 +149,9 @@ nav a[aria-current="page"]{color:var(--accent)}
 #sheet-close{justify-self:start}
 #sheet-body{overflow:auto;padding:4px 16px calc(env(safe-area-inset-bottom) + 28px);display:flex;flex-direction:column;gap:6px;-webkit-overflow-scrolling:touch}
 #sheet .grp{background:var(--grp2)}
+/* a scrolling flex column shrinks overflow:hidden children to fit instead of scrolling: never let them shrink */
+#sheet-body{flex:1 1 auto;min-height:0}
+#sheet-body > *{flex-shrink:0}
 #sheet .rgrid > div,#sheet .stats > div{border-color:rgba(84,84,88,.45)}
 .hero{width:100%;max-height:300px;object-fit:cover;border-radius:12px;background:var(--grp2)}
 .d-title{font:700 28px/1.15 var(--display);margin:12px 4px 0;text-wrap:balance}
@@ -696,7 +699,7 @@ const supa = {
     const t = await this.token(); if(!t) throw { code:'signed_out' };
     const r = await fetch(SUPA.url + path, { ...opts, headers:{ apikey: SUPA.key, Authorization: 'Bearer ' + t, 'Content-Type':'application/json', ...(opts.headers || {}) } });
     if(r.status === 401){ this.keep(null); throw { code:'signed_out' }; }
-    if(!r.ok) throw { code: r.status === 429 ? 'rate_limited' : r.status === 403 ? 'not_on_list' : 'http_' + r.status };
+    if(!r.ok){ let j = null; try { j = await r.json(); } catch(e){} throw { code: r.status === 429 ? 'rate_limited' : r.status === 403 ? 'not_on_list' : 'http_' + r.status, reason: j && j.reason }; }
     return r.status === 204 || r.headers.get('content-length') === '0' ? null : r.json().catch(() => null);
   },
   async signOut(){
@@ -735,12 +738,13 @@ async function supaStore(){
 }
 /* AI through the `ask` function: same shape as Claude's `sample` capability (callable + .json) */
 async function blobB64(b){ const buf = new Uint8Array(await b.arrayBuffer()); let s = ''; for(let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000)); return btoa(s); }
+const AI_WHY = { credit:'The AI account is out of credit.', auth:'The AI key isn’t accepted.', rate:'The AI is busy right now.', busy:'The AI is busy right now.', network:'Couldn’t reach the AI.', model:'The AI model isn’t available.' };
 function supaAI(){
   const ask = async (prompt, opts = {}) => {
     const images = await Promise.all((opts.images || []).slice(0, 1).map(i => typeof i === 'string' ? i.replace(/^data:[^,]+,/, '') : blobB64(i)));
     let r;
     try { r = await supa.call('/functions/v1/ask', { method:'POST', body: JSON.stringify({ prompt, images }) }); }
-    catch(e){ throw e.code === 'rate_limited' ? { code:'rate_limited' } : e.code === 'http_503' ? { code:'unavailable' } : e.code === 'signed_out' ? { code:'signed_out' } : { code:'ai_failed', message: 'The AI didn’t answer. Try again, or fill it in by hand.' }; }
+    catch(e){ throw e.code === 'rate_limited' ? { code:'rate_limited' } : e.code === 'http_503' ? { code:'unavailable' } : e.code === 'signed_out' ? { code:'signed_out' } : { code:'ai_failed', reason: e.reason, message: (AI_WHY[e.reason] || 'The AI didn’t answer.') + ' Try again, or fill it in by hand.' }; }
     return { text: (r && r.text) || '' };
   };
   const f = (p, o) => ask(p, o);
@@ -833,7 +837,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.18 · 18 Nov 2026';
+const APP_VERSION = '1.19 · 19 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -1680,6 +1684,7 @@ function adviceBlock(b){
       <div><small>Coffee</small><span>${n.dose ?? '–'}<i>g</i></span></div><div><small>Water</small><span>${n.water ?? '–'}<i>g</i></span></div><div><small>Ratio</small><span>${ratio(n.dose, n.water)}</span></div>
       <div><small>Grind</small><span>${esc(n.grind ?? '–')}</span></div><div><small>Temp</small><span>${n.temp ?? '–'}<i>°C</i></span></div><div><small>Target</small><span>${esc(n.targetTime ?? '–')}</span></div></div>
     ${a.why ? `<p class="foot">${esc(a.why)}</p>` : ''}
+    ${a.fallback ? `<p class="foot">${esc(a.fallback)} This is the quick tip from your notes instead.</p>` : ''}
     <div class="btn-row"><button class="btn go" data-act="useAdvice" data-id="${b.id}">Brew with this</button><button class="btn" data-act="advise" data-id="${b.id}">Ask again</button></div>`;
 }
 function openBrewDetail(id, justSaved){
@@ -1712,8 +1717,8 @@ async function getAdvice(id){
   let advice;
   try { advice = await askJSON(advicePrompt(history, bean, st), { modelTier:'default' }); advice.at = Date.now(); }
   catch(e){
-    if(e && (e.code === 'unavailable' || e.code === 'not_granted')) advice = ruleAdvice(b, st, history, bean);
-    else { if(box) box.innerHTML = `<div class="err">${esc(errMsg(e))}</div><div class="btn-row"><button class="btn go" data-act="advise" data-id="${b.id}">Try again</button></div>`; return; }
+    advice = ruleAdvice(b, st, history, bean);
+    if(!(e && (e.code === 'unavailable' || e.code === 'not_granted'))) advice.fallback = (e && AI_WHY[e.reason]) || 'The AI didn’t answer.';
   }
   await save({ ...brewById(id), advice });
   if(sheetOpen()) openBrewDetail(id);
