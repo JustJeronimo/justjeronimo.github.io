@@ -185,16 +185,16 @@ with sync_playwright() as p:
 
     # 5c. journal reveal: button grows into the journal, × and pull-down fold it back
     pg.goto(URL + '#brew'); pg.wait_for_timeout(700)
-    pg.click('#jr-btn'); pg.wait_for_timeout(120)
+    pg.click('#jr-btn'); pg.wait_for_timeout(150)
     mid = pg.evaluate("getComputedStyle(document.getElementById('jr')).clipPath")
-    check('reveal is a rounded inset mid-flight', 'inset' in mid and 'round' in mid, mid)
-    pg.wait_for_timeout(900)
+    check('reveal blooms from the button', mid.startswith('circle'), mid)
+    pg.wait_for_timeout(1800)
     check('journal opens full screen', pg.evaluate("J.p") == 1 and pg.locator('#jrv .seg').is_visible() and location_hash(pg) == '#journal')
-    pg.click('#jr-x'); pg.wait_for_timeout(1000)
+    pg.click('#jr-x'); pg.wait_for_timeout(1800)
     check('journal folds back', pg.evaluate("J.p") == 0 and not pg.locator('#jr').is_visible())
-    pg.click('#jr-btn'); pg.wait_for_timeout(1000)
+    pg.click('#jr-btn'); pg.wait_for_timeout(1800)
     g = pg.locator('#jr-grab').bounding_box(); x = g['x'] + g['width'] / 2; y = g['y'] + 20
-    pg.mouse.move(x, y); pg.mouse.down(); pg.mouse.move(x, y + 200, steps=5); pg.mouse.move(x, y + 520, steps=5); pg.mouse.up(); pg.wait_for_timeout(1000)
+    pg.mouse.move(x, y); pg.mouse.down(); pg.mouse.move(x, y + 200, steps=5); pg.mouse.move(x, y + 520, steps=5); pg.mouse.up(); pg.wait_for_timeout(1800)
     check('pull down closes journal', pg.evaluate("J.p") == 0)
 
     # 5a. bean palettes from real bag photos + journal calendar

@@ -478,9 +478,12 @@ main{padding-bottom:calc(env(safe-area-inset-bottom) + 40px)}
 #jr{position:fixed;inset:0;z-index:15;background:var(--bg);visibility:hidden;will-change:clip-path}
 #jr-scroll{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 #jrv{transform-origin:85% 0;will-change:transform,opacity}
-#jr-x{position:absolute;z-index:2;margin:0;color:var(--label);background:var(--bg)}
-#jr-grab{position:absolute;top:0;left:0;right:76px;height:calc(env(safe-area-inset-top) + 64px);z-index:1;touch-action:none}
-#jr-grab::after{content:"";position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 8px);width:36px;height:4px;margin-left:-18px;border-radius:2px;background:var(--ter)}
+#jr-btns{position:fixed;z-index:16;display:flex;gap:8px;visibility:hidden}
+#jr-btns .iconbtn{margin:0;background:var(--bg)}
+#jr-x{position:relative}
+#jr-x span{position:absolute;inset:11px;display:block;will-change:transform,opacity}
+#jr-x span svg,#jr-cog svg{width:22px;height:22px;display:block}
+#jr-grab{position:absolute;top:0;left:0;right:120px;height:calc(env(safe-area-inset-top) + 64px);z-index:1;touch-action:none}
 .fl-btns{display:flex;gap:8px}
 .jbtn{color:var(--label)!important}
 .jbtn svg{width:22px;height:22px}
@@ -567,7 +570,7 @@ main{padding-bottom:calc(env(safe-area-inset-bottom) + 40px)}
 <div id="dock" class="away"></div>
 
 <div id="jr" aria-hidden="true" role="dialog" aria-label="Journal"><div id="jr-scroll"><main id="jrv"></main></div>
-  <div id="jr-grab" aria-hidden="true"></div><button class="iconbtn" id="jr-x" data-act="journalClose" aria-label="Close journal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button></div>
+  <div id="jr-grab" aria-hidden="true"></div><div id="jr-btns"><button class="iconbtn jbtn" id="jr-x" data-act="journalClose" aria-label="Back to brewing"><span class="i-book"></span><span class="i-cup"></span></button><button class="iconbtn jbtn" id="jr-cog" data-act="settings" aria-label="Settings and version"></button></div></div>
 
 <input type="file" id="cam" accept="image/*" capture="environment" hidden>
 <input type="file" id="pick" accept="image/*" hidden>
@@ -849,7 +852,7 @@ const GRINDERS = [
 const GMAP = Object.fromEntries(GRINDERS.map(g => [g.id, g]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9+]+/g, ' ').trim();
 function gName(g){ return g ? `${g.brand} ${g.model}` : ''; }
-const APP_VERSION = '1.20 · 19 Nov 2026';
+const APP_VERSION = '1.21 · 19 Nov 2026';
 /* small 3D render per grinder (coffee/assets/grinders/<id>.png); hidden when the file isn't there */
 function gImg(g, cls = 'gimg'){ return g ? `<img class="${cls}" src="assets/grinders/${g.id}.png" alt="" loading="lazy" decoding="async" onerror="this.remove()">` : ''; }
 function matchGrinder(name){
@@ -1445,8 +1448,9 @@ function goStep(n){
   flow.step = n; render();
   requestAnimationFrame(() => { const el = document.querySelector('.fl-step.on'); if(el) el.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block:'start' }); });
 }
-const journalBtn = `<button class="iconbtn jbtn" id="jr-btn" data-act="journal" aria-label="Open journal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="miter" aria-hidden="true"><path d="M3 6.2v12.6M4.6 5.4v14.2"/><path d="M6.4 4.8c2.2-.3 4 .2 5.6 1.4v13.6c-1.6-1.2-3.4-1.7-5.6-1.4z"/><path d="M12 6.2c2.2-1.3 5-1.6 9-1.4v13.6c-4-.2-6.8.1-9 1.4"/><path d="M14 8.6h4.6M14 11h2.6M14 13.4h1.6"/><path d="M20.2 10.4l-4.9 8.4-.5 1.5 1.2-1 4.9-8.4zM19.4 11.8l1.6.9"/></svg></button>`;
-const settingsBtn = `<button class="iconbtn" data-act="settings" aria-label="Settings and version"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg></button>`;
+const COG_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="miter" stroke-linecap="butt" aria-hidden="true"><path d="M18.76 9.83L21.03 10.26L21.03 13.74L18.76 14.17A7.1 7.1 0 0 1 16.61 17.40L18.31 15.25L19.62 17.16L17.16 19.62L15.25 18.31A7.1 7.1 0 0 1 11.44 19.08L14.17 18.76L13.74 21.03L10.26 21.03L9.83 18.76A7.1 7.1 0 0 1 6.60 16.61L8.75 18.31L6.84 19.62L4.38 17.16L5.69 15.25A7.1 7.1 0 0 1 4.92 11.44L5.24 14.17L2.97 13.74L2.97 10.26L5.24 9.83A7.1 7.1 0 0 1 7.39 6.60L5.69 8.75L4.38 6.84L6.84 4.38L8.75 5.69A7.1 7.1 0 0 1 12.56 4.92L9.83 5.24L10.26 2.97L13.74 2.97L14.17 5.24A7.1 7.1 0 0 1 17.40 7.39L15.25 5.69L17.16 4.38L19.62 6.84L18.31 8.75A7.1 7.1 0 0 1 19.08 12.56Z"/><circle cx="12" cy="12" r="2.9"/></svg>`, CUP_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="miter" stroke-linecap="butt" aria-hidden="true"><path d="M8.6 2.8c-1.1 1.2 1.1 2.3 0 3.6M12 2.8c-1.1 1.2 1.1 2.3 0 3.6"/><path d="M4 9.2h12.6v5.6c0 2.6-2.1 4.7-4.7 4.7H8.7C6.1 19.5 4 17.4 4 14.8z"/><path d="M16.6 10.8h1.5a2.4 2.4 0 0 1 0 4.8h-1.6"/><path d="M2.6 21.3h15.4"/></svg>`, BOOK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="miter" aria-hidden="true"><path d="M3 6.2v12.6M4.6 5.4v14.2"/><path d="M6.4 4.8c2.2-.3 4 .2 5.6 1.4v13.6c-1.6-1.2-3.4-1.7-5.6-1.4z"/><path d="M12 6.2c2.2-1.3 5-1.6 9-1.4v13.6c-4-.2-6.8.1-9 1.4"/><path d="M14 8.6h4.6M14 11h2.6M14 13.4h1.6"/><path d="M20.2 10.4l-4.9 8.4-.5 1.5 1.2-1 4.9-8.4zM19.4 11.8l1.6.9"/></svg>`;
+const journalBtn = `<button class="iconbtn jbtn" id="jr-btn" data-act="journal" aria-label="Open journal">${BOOK_ICON}</button>`;
+const settingsBtn = `<button class="iconbtn jbtn" id="set-btn" data-act="settings" aria-label="Settings and version">${COG_ICON}</button>`;
 function viewBrew(){
   const p = curPlan(), st = setupById(p.setupId) || curSetup(), g = grinderOf(st), bean = beanById(p.beanId);
   const act = activeStep(), ms = tNow();
@@ -1607,7 +1611,7 @@ function journalBody(){
 function viewJournal(){
   const rated = S.brews.filter(b => b.rating);
   const avg = rated.length ? (rated.reduce((a,b) => a + b.rating, 0) / rated.length).toFixed(1) : '–';
-  return `<h1 class="lt">Journal</h1>
+  return `<div class="fl-head"><div><div class="fl-eyebrow">${S.brews.length} brew${S.brews.length === 1 ? '' : 's'} · ${(n => n + ' bean' + (n === 1 ? '' : 's'))(new Set(S.brews.map(b => b.beanId).filter(Boolean)).size)}</div><h1 class="fl-title">Journal</h1></div><div class="fl-btns" aria-hidden="true"><span style="width:44px;height:44px"></span><span style="width:44px;height:44px"></span></div></div>
   <div class="seg seg3" data-on="${jseg}" role="tablist"><span class="seg-thumb" aria-hidden="true"></span><button role="tab" aria-selected="${jseg === 'all'}" data-act="seg" data-id="all">All</button><button role="tab" aria-selected="${jseg === 'top'}" data-act="seg" data-id="top">Top rated</button><button role="tab" aria-selected="${jseg === 'cal'}" data-act="seg" data-id="cal">Calendar</button></div>
   <div class="grp stats"><div><b>${S.brews.length}</b><span>Brews</span></div><div><b>${avg}</b><span>Avg rating</span></div><div><b>${S.beans.length}</b><span>Beans</span></div></div>
   <div id="jbody">${journalBody()}</div>`;
@@ -1644,22 +1648,30 @@ function jRect(){ const b = $('#jr-btn'); if(!b) return { x: innerWidth - 108, y
 let jFrom = null;
 function paintJournal(){
   const p = J.p, jr = $('#jr'), R = jFrom || jRect(), W = innerWidth, H = innerHeight, k = Math.max(0, Math.min(1, p));
-  const L = (a, b) => a + (b - a) * k, rad = (1 - k) * 4 + Math.sin(Math.PI * k) * 30;
   jr.style.visibility = p > .001 ? 'visible' : 'hidden'; jr.setAttribute('aria-hidden', String(p < .5));
-  jr.style.clipPath = p >= .999 ? 'none' : `inset(${L(R.y, 0)}px ${L(W - R.x - R.w, 0)}px ${L(H - R.y - R.h, 0)}px ${L(R.x, 0)}px round ${rad}px)`;
-  const c = Math.max(0, Math.min(1, (p - .3) / .55)), e = 1 - Math.pow(1 - c, 3);
-  const jv = $('#jrv'); jv.style.opacity = e; jv.style.transform = p >= .999 ? '' : `translateY(${(1 - e) * 18}px) scale(${.97 + e * .03})`;
-  const x = $('#jr-x'); x.style.left = R.x + 'px'; x.style.top = R.y + 'px'; x.style.opacity = Math.max(0, (p - .55) / .45);
+  // bloom: a circle opens from the button's centre and floods the screen
+  const cx = R.x + R.w / 2, cy = R.y + R.h / 2, far = Math.hypot(Math.max(cx, W - cx), Math.max(cy, H - cy));
+  jr.style.clipPath = p >= .999 ? 'none' : `circle(${22 + (far - 22) * k}px at ${cx}px ${cy}px)`;
+  const kids = $('#jrv').children;
+  for(let i = 0; i < kids.length; i++){ const t = Math.max(0, Math.min(1, (p - .32 - i * .05) / .45)), e = 1 - Math.pow(1 - t, 3);
+    kids[i].style.opacity = i === 0 ? 1 : e; kids[i].style.transform = i === 0 || p >= .999 ? '' : `translateY(${(1 - e) * 16}px)`; }
+  // the two buttons never move: copies sit exactly on the originals, the book turns into a steaming cup
+  const bt = $('#jr-btns'), sb = $('#set-btn'); bt.style.visibility = p > .001 ? 'visible' : 'hidden'; bt.style.left = R.x + 'px'; bt.style.top = R.y + 'px';
+  const x = $('#jr-x'), book = x.firstElementChild, cup = x.lastElementChild;
+  if(!book.innerHTML){ book.innerHTML = BOOK_ICON; cup.innerHTML = CUP_ICON; $('#jr-cog').innerHTML = COG_ICON; }
+  const m = Math.max(0, Math.min(1, (p - .15) / .5)), e = m * m * (3 - 2 * m);
+  book.style.opacity = 1 - e; book.style.transform = `scale(${1 - e * .25}) rotate(${-e * 12}deg)`;
+  cup.style.opacity = e; cup.style.transform = `scale(${.75 + e * .25}) rotate(${(1 - e) * 12}deg)`;
   const v = $('#view'), b = $('#jr-btn');
-  v.style.transform = k > .001 ? `scale(${1 - k * .04})` : ''; v.style.filter = k > .001 ? `brightness(${1 - k * .5})` : '';
-  if(b) b.style.opacity = k > .001 ? Math.max(0, 1 - k * 4) : '';
-  if(p <= .001){ jFrom = null; v.style.transformOrigin = ''; }
+  v.style.transform = k > .001 ? `scale(${1 - k * .04})` : ''; v.style.filter = k > .001 ? `brightness(${1 - k * .55})` : '';
+  [b, sb].forEach(el => { if(el) el.style.visibility = p > .001 ? 'hidden' : ''; });
+  if(p <= .001 && J.to === 0){ jFrom = null; v.style.transformOrigin = ''; }
 }
 function jGo(to, v = 0){
   J.to = to; J.stop();
   if(reduceMotion()){ J.p = to; paintJournal(); return; }
-  // critically damped: smooth, no bounce at the end
-  let x = J.p, vel = v, last = performance.now(), raf; const K = 190, C = 2 * Math.sqrt(K);
+  // critically damped (K 55): slow, smooth, no bounce at the end
+  let x = J.p, vel = v, last = performance.now(), raf; const K = 55, C = 2 * Math.sqrt(K);
   const tick = now => { const dt = Math.min(.032, (now - last) / 1000); last = now;
     vel += (-K * (x - to) - C * vel) * dt; x += vel * dt; J.p = x; paintJournal();
     if(Math.abs(x - to) < .0015 && Math.abs(vel) < .02){ J.p = to; paintJournal(); return; }
@@ -1668,7 +1680,7 @@ function jGo(to, v = 0){
 }
 function openJournal(){
   if(!jFrom){ jFrom = jRect(); $('#view').style.transformOrigin = `${jFrom.x + jFrom.w / 2}px ${jFrom.y + window.scrollY}px`; }
-  paintJournalBody(); $('#jr-scroll').scrollTop = 0; jGo(1);
+  paintJournalBody(); $('#jr-scroll').scrollTop = 0; J.to = 1; paintJournal(); jGo(1);
   if(location.hash !== '#journal') history.pushState(null, '', '#journal');
 }
 function closeJournal(){ jGo(0); if(location.hash === '#journal') history.replaceState(null, '', '#brew'); }
