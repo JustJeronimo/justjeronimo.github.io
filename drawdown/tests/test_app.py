@@ -63,6 +63,8 @@ window.claude={use:(n)=>Promise.resolve(n==='sample'?(()=>{
   f.limits=async()=>({images:true}); return f;})():null)};
 """
 
+def location_hash(pg): return pg.evaluate('location.hash')
+
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path=CHROME)
     def page(init=None):
@@ -105,7 +107,7 @@ with sync_playwright() as p:
 
     # 2. guided brew page: opens on the Brew step, hero timer, skip, stop → taste → log
     check('opens on brew step', 'Brew' in pg.inner_text('.fl-step.on .fl-sh'), pg.inner_text('.fl-step.on .fl-sh'))
-    check('beans and gear folded in', pg.locator('.fl-step.done').count() == 3 and pg.locator('nav a').count() == 2)
+    check('beans and gear folded in', pg.locator('.fl-step.done').count() == 3 and pg.locator('#jr-btn').count() == 1 and not pg.locator('nav').is_visible())
     pg.evaluate("window.__snd=[]; ['tick','tap','second','chime','start','stop','snap'].forEach(k => { const f = SFX[k]; SFX[k] = (...a) => { window.__snd.push(k); return f(...a); }; })")
     pg.click('[data-act=timerToggle]'); pg.evaluate('T.start = Date.now() - 62000'); pg.wait_for_timeout(500)
     pg.wait_for_timeout(200)
@@ -180,6 +182,20 @@ with sync_playwright() as p:
     check('AI failure falls back to a tip', pg.evaluate("!!brewById('brew_a').advice?.next && /out of credit/.test(brewById('brew_a').advice.fallback || '')"), str(pg.evaluate("brewById('brew_a').advice")))
     pg.screenshot(path='/tmp/drawdown-detail.png')
     pg.evaluate("AI = null; void save({ ...brewById('brew_a'), advice:null, notes:'Bright' }); closeSheet()"); pg.wait_for_timeout(500)
+
+    # 5c. journal reveal: button grows into the journal, × and pull-down fold it back
+    pg.goto(URL + '#brew'); pg.wait_for_timeout(700)
+    pg.click('#jr-btn'); pg.wait_for_timeout(120)
+    mid = pg.evaluate("getComputedStyle(document.getElementById('jr')).clipPath")
+    check('reveal is a rounded inset mid-flight', 'inset' in mid and 'round' in mid, mid)
+    pg.wait_for_timeout(900)
+    check('journal opens full screen', pg.evaluate("J.p") == 1 and pg.locator('#jrv .seg').is_visible() and location_hash(pg) == '#journal')
+    pg.click('#jr-x'); pg.wait_for_timeout(1000)
+    check('journal folds back', pg.evaluate("J.p") == 0 and not pg.locator('#jr').is_visible())
+    pg.click('#jr-btn'); pg.wait_for_timeout(1000)
+    g = pg.locator('#jr-grab').bounding_box(); x = g['x'] + g['width'] / 2; y = g['y'] + 20
+    pg.mouse.move(x, y); pg.mouse.down(); pg.mouse.move(x, y + 200, steps=5); pg.mouse.move(x, y + 520, steps=5); pg.mouse.up(); pg.wait_for_timeout(1000)
+    check('pull down closes journal', pg.evaluate("J.p") == 0)
 
     # 5a. bean palettes from real bag photos + journal calendar
     import base64, io
